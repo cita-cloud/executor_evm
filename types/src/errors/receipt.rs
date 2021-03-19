@@ -38,7 +38,6 @@ pub enum ReceiptError {
     MutableCallInStaticContext,
     OutOfBounds,
     Reverted,
-    FrozenAccount,
 }
 
 impl ReceiptError {
@@ -66,7 +65,6 @@ impl ReceiptError {
             ReceiptError::MutableCallInStaticContext => "Mutable call in static context.",
             ReceiptError::OutOfBounds => "Out of bounds.",
             ReceiptError::Reverted => "Reverted.",
-            ReceiptError::FrozenAccount => "To account is frozen.",
         };
         desc.to_string()
     }
@@ -94,7 +92,6 @@ impl ReceiptError {
             }
             ReceiptError::OutOfBounds => ProtoReceiptError::OutOfBounds,
             ReceiptError::Reverted => ProtoReceiptError::Reverted,
-            ReceiptError::FrozenAccount => ProtoReceiptError::AccountFrozen,
         }
     }
 
@@ -121,7 +118,6 @@ impl ReceiptError {
             }
             ProtoReceiptError::OutOfBounds => ReceiptError::OutOfBounds,
             ProtoReceiptError::Reverted => ReceiptError::Reverted,
-            ProtoReceiptError::AccountFrozen => ReceiptError::FrozenAccount,
         }
     }
 }
@@ -148,7 +144,6 @@ impl Decodable for ReceiptError {
             16 => Ok(ReceiptError::MutableCallInStaticContext),
             17 => Ok(ReceiptError::OutOfBounds),
             18 => Ok(ReceiptError::Reverted),
-            19 => Ok(ReceiptError::FrozenAccount),
             _ => Err(DecoderError::Custom("Unknown Receipt error.")),
         }
     }

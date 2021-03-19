@@ -243,9 +243,6 @@ impl ExecutedBlock {
                     ExecutionError::Authentication(AuthenticationError::NoCallPermission) => {
                         Some(ReceiptError::NoCallPermission)
                     }
-                    ExecutionError::Authentication(AuthenticationError::FrozenAccount) => {
-                        Some(ReceiptError::FrozenAccount)
-                    }
                     ExecutionError::Internal { .. } => Some(ReceiptError::ExecutionInternal),
                     ExecutionError::InvalidTransaction => Some(ReceiptError::TransactionMalformed),
                     _ => Some(ReceiptError::Internal),

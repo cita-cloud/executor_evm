@@ -66,7 +66,7 @@ pub struct Executor {
 impl Executor {
     #[allow(unknown_lints, clippy::too_many_arguments)] // TODO clippy
     pub fn init(
-        genesis_path: &str,
+        _genesis_path: &str,
         data_path: String,
         fsm_req_receiver: Receiver<OpenBlock>,
         fsm_resp_sender: Sender<ClosedBlock>,
@@ -74,8 +74,6 @@ impl Executor {
         command_resp_sender: Sender<CommandResp>,
         eth_compatibility: bool,
     ) -> Executor {
-        let mut genesis = Genesis::init(&genesis_path);
-
         // TODO: Can remove NUM_COLUMNS(useless)
         let config = Config::with_category_num(NUM_COLUMNS);
         let nosql_path = data_path + "/statedb";
@@ -86,15 +84,11 @@ impl Executor {
         let current_header = match get_current_header(db.clone()) {
             Some(header) => header,
             None => {
-                warn!("Not found exist block within database. Loading genesis block...");
-                genesis
-                    // FIXME
-                    .lazy_execute(state_db.clone())
-                    .expect("failed to load genesis");
-                genesis.block.header().clone()
+                warn!("Not found exist block within database.");
+                Header::default()
             }
         };
-        let mut executor = Executor {
+        let executor = Executor {
             current_header: RwLock::new(current_header),
             state_db,
             db,
@@ -106,7 +100,6 @@ impl Executor {
             eth_compatibility,
         };
 
-        executor.sys_config = GlobalSysConfig::load(&executor, BlockTag::Tag(Tag::Pending));
         info!(
             "executor init, current_height: {}, current_hash: {:?}",
             executor.get_current_height(),
@@ -360,8 +353,7 @@ impl Executor {
     //    which be used to validate arrived Proof (ExecutedResult has "validators" config)
     pub fn executed_result_by_height(&self, height: u64) -> ExecutedResult {
         let block_tag = BlockTag::Height(height);
-        let sys_config = GlobalSysConfig::load(&self, block_tag);
-        let consensus_config = make_consensus_config(sys_config);
+        let consensus_config = ConsensusConfig::default();
         let executed_header = self
             .block_header(block_tag)
             .map(types::header::Header::generate_executed_header)
@@ -381,8 +373,13 @@ impl Executor {
 
     pub fn to_executed_block(&self, open_block: OpenBlock) -> ExecutedBlock {
         let current_state_root = self.current_state_root();
-        let last_hashes = self.build_last_hashes(None, open_block.number() - 1);
-        // let parent_hash = *open_block.parent_hash();
+        let last_hashes = {
+            if open_block.number() == 0 {
+                Vec::new()
+            } else {
+                self.build_last_hashes(None, open_block.number() - 1)
+            }
+        };
 
         ExecutedBlock::create(
             &self.sys_config.block_sys_config,

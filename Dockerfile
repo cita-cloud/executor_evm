@@ -1,12 +1,13 @@
 FROM rust:slim-buster AS buildstage
 WORKDIR /build
 COPY . /build/
+ENV CARGO_HOME /build/.cargo
 RUN cp /build/mirror/config /usr/local/cargo/config;\
          cp /build/mirror/sources.list /etc/apt/sources.list;
 RUN /bin/sh -c set -eux;\
     RUSTUP_DIST_SERVER=https://mirrors.ustc.edu.cn/rust-static rustup component add rustfmt;\
     apt-get update;\
-    apt-get install -y --no-install-recommends git protobuf-compiler libssl-dev pkg-config;\
+    apt-get install -y --no-install-recommends git protobuf-compiler libssl-dev pkg-config clang;\
     rm -rf /var/lib/apt/lists/*;
 RUN cargo build --release
 FROM debian:buster-slim

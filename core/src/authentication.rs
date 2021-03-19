@@ -67,7 +67,7 @@ pub fn check_permission(
 
     match check_allowance(account_allowances, &t.action) {
         AllowanceType::Open => return Ok(()),
-        AllowanceType::Frozen => return Err(AuthenticationError::FrozenAccount),
+        AllowanceType::Frozen => return Err(AuthenticationError::NoTransactionPermission),
         _ => {}
     }
 

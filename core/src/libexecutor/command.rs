@@ -563,16 +563,6 @@ impl Commander for Executor {
             closed_block.transactions_root(),
             closed_block.proposer(),
         );
-        let are_permissions_changed = {
-            let cache = closed_block.state.cache.clone();
-            let permission_management = PermissionManagement::new(self);
-            let permissions =
-                permission_management.permission_addresses(BlockTag::Tag(Tag::Pending));
-            cache.into_inner().iter().any(|(address, ref _a)| {
-                &address.lower_hex()[..34] == "ffffffffffffffffffffffffffffffffff"
-                    || permissions.contains(&address)
-            })
-        };
 
         {
             *self.current_header.write() = closed_block.header().clone();
@@ -583,10 +573,6 @@ impl Commander for Executor {
         // Must make sure write into database before load_sys_config
         self.write_batch(closed_block);
 
-        if are_permissions_changed {
-            trace!("Permissions changed, reload global sys config.");
-            self.sys_config = GlobalSysConfig::load(&self, BlockTag::Tag(Tag::Pending));
-        }
         let mut executed_result = ExecutedResult::new();
         let consensus_config = make_consensus_config(self.sys_config.clone());
         executed_result.set_config(consensus_config);

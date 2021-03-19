@@ -20,7 +20,6 @@ pub enum AuthenticationError {
     NoContractPermission,
     NoCallPermission,
     InvalidTransaction,
-    FrozenAccount,
 }
 
 impl fmt::Display for AuthenticationError {
@@ -30,7 +29,6 @@ impl fmt::Display for AuthenticationError {
             AuthenticationError::NoContractPermission => "No create contract permision.".to_owned(),
             AuthenticationError::NoCallPermission => "No contract call permission.".to_owned(),
             AuthenticationError::InvalidTransaction => "Invalid transaction.".to_owned(),
-            AuthenticationError::FrozenAccount => "To account is frozen.".to_owned(),
         };
         write!(f, "{}", printable)
     }

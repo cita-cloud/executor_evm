@@ -1,7 +1,6 @@
 FROM rust:slim-buster AS buildstage
 WORKDIR /build
 COPY . /build/
-ENV CARGO_HOME /build/.cargo
 RUN cp /build/mirror/config /usr/local/cargo/config;\
          cp /build/mirror/sources.list /etc/apt/sources.list;
 RUN /bin/sh -c set -eux;\

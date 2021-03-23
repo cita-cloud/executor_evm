@@ -17,20 +17,34 @@ extern crate util;
 #[macro_use]
 extern crate cita_logger as logger;
 #[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate lazy_static;
+#[cfg_attr(test, macro_use)]
+extern crate serde_json;
+#[macro_use]
+extern crate enum_primitive;
+#[macro_use]
 extern crate crossbeam_channel;
+#[macro_use]
+extern crate libproto;
+
+use crate::types::block::OpenBlock;
+use crate::types::block_number::{BlockTag, Tag};
+use crate::types::Bytes;
 use cita_cloud_proto::blockchain::CompactBlock as CloudCompactBlock;
-use cita_cloud_proto::common::Hash as CloudHash;
+use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
 use cita_cloud_proto::controller::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::controller::RawTransaction as CloudRawTransaction;
+use cita_cloud_proto::evm::rpc_service_server::{RpcService, RpcServiceServer};
+use cita_cloud_proto::evm::{
+    Balance as CloudBalance, ByteCode as CloudByteCode, Receipt as CloudReceipt,
+};
 use cita_cloud_proto::executor::executor_service_server::{ExecutorService, ExecutorServiceServer};
 use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
 use clap::{App, Arg};
-use common_types::block::OpenBlock;
-use common_types::block_number::{BlockTag, Tag};
-use common_types::Bytes;
-use core_executor::libexecutor::block::ClosedBlock;
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
@@ -44,6 +58,9 @@ use tokio::fs;
 use tonic::transport::Server;
 use tonic::{Code, Request, Response, Status};
 use util::set_panic_handler;
+use crate::core_executor::libexecutor::command::{Command, CommandResp};
+use cita_types::{H256, Address};
+use crate::core_executor::libexecutor::ExecutedResult;
 
 const GIT_VERSION: &str = git_version!(
     args = ["--tags", "--always", "--dirty=-modified"],
@@ -51,11 +68,14 @@ const GIT_VERSION: &str = git_version!(
 );
 const GIT_HOMEPAGE: &str = "https://github.com/cita-cloud/executor_chaincode";
 
+#[derive(Clone)]
 pub struct ExecutorServer {
     exec_req_sender: Sender<OpenBlock>,
-    exec_resp_receiver: Receiver<ClosedBlock>,
+    exec_resp_receiver: Receiver<ExecutedResult>,
     call_req_sender: Sender<CloudCallRequest>,
     call_resp_receiver: Receiver<Result<Bytes, String>>,
+    command_req_sender: Sender<Command>,
+    command_resp_receiver: Receiver<CommandResp>,
 }
 
 #[tonic::async_trait]
@@ -87,8 +107,8 @@ impl ExecutorService for ExecutorServer {
 
         let _ = self.exec_req_sender.send(open_blcok);
         match self.exec_resp_receiver.recv() {
-            Ok(close_block) => {
-                let stat_root = close_block.state.root.to_vec();
+            Ok(executed_result) => {
+                let stat_root = executed_result.get_executed_info().get_header().state_root.to_vec();
                 info!("{}", hex::encode(stat_root.clone()));
                 Ok(Response::new(CloudHash { hash: stat_root }))
             }
@@ -109,6 +129,48 @@ impl ExecutorService for ExecutorServer {
                 Err(str) => Err(Status::new(Code::Internal, str)),
             },
             Err(recv_error) => Err(Status::new(Code::Internal, recv_error.to_string())),
+        }
+    }
+}
+
+#[tonic::async_trait]
+impl RpcService for ExecutorServer {
+    async fn get_transaction_receipt(
+        &self,
+        request: Request<CloudHash>,
+    ) -> Result<Response<CloudReceipt>, Status> {
+        let cloud_hash = request.into_inner();
+        let _ = self.command_req_sender.send(Command::ReceiptAt(H256::from(cloud_hash.hash.as_slice())));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => Ok(Response::new(rich_receipt.into())),
+            _ => Err(Status::new(Code::NotFound, "Not get the receipt"))
+        }
+    }
+
+    async fn get_code(
+        &self,
+        request: Request<CloudAddress>,
+    ) -> Result<Response<CloudByteCode>, Status> {
+        let cloud_addres = request.into_inner();
+        let _ = self.command_req_sender.send(Command::CodeAt(Address::from(cloud_addres.address.as_slice()), BlockTag::Tag(Tag::Pending)));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::CodeAt(Some(byte_code))) => Ok(Response::new(CloudByteCode { byte_code })),
+            _ => Err(Status::new(Code::NotFound, "Not get the bytecode"))
+        }
+    }
+
+    async fn get_balance(
+        &self,
+        request: Request<CloudAddress>,
+    ) -> Result<Response<CloudBalance>, Status> {
+        let cloud_addres = request.into_inner();
+        let _ = self.command_req_sender.send(Command::BalanceAt(Address::from(cloud_addres.address.as_slice()), BlockTag::Tag(Tag::Pending)));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::BalanceAt(Some(value))) => Ok(Response::new(CloudBalance { value })),
+            _ => Err(Status::new(Code::NotFound, "Not get the balance"))
         }
     }
 }
@@ -142,7 +204,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Arg::new("stdout")
                 .short('s')
                 .long("stdout")
-                .about("Log to console")
+                .about("Log to console"),
         )
         .get_matches();
 
@@ -159,36 +221,30 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("grpc port of this service: {}", grpc_port);
         let executor_addr = format!("127.0.0.1:{}", grpc_port).parse()?;
 
-        let (_fsm_req_sender, fsm_req_receiver) = crossbeam_channel::unbounded();
-        let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
-        let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
-        let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-
         let data_path = String::from("./data");
         let mut executor = Executor::init(
-            "",
             data_path,
-            fsm_req_receiver,
-            fsm_resp_sender,
-            command_req_receiver,
-            command_resp_sender,
             eth_compatibility,
         );
 
-        let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded();
+        let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();
         let (exec_resp_sender, exec_resp_receiver) = crossbeam_channel::unbounded();
         let (call_req_sender, call_req_receiver) = crossbeam_channel::bounded(0);
         let (call_resp_sender, call_resp_receiver) = crossbeam_channel::bounded(0);
+        let (command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
+        let (command_resp_sender, command_resp_receiver) = crossbeam_channel::bounded(0);
+
 
         let handle = thread::spawn(move || loop {
             select! {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let close_block = executor.into_fsm(open_block);
-                            executor.write_batch(&close_block);
-                            *executor.current_header.write() = close_block.header().clone();
-                            let _ = exec_resp_sender.send(close_block);
+                            let mut close_block = executor.into_fsm(open_block.clone());
+                            let executed_result = executor.grow(&close_block);
+                            close_block.clear_cache();
+                            executor.core_chain.set_db_result(&executed_result, &open_block);
+                            let _ = exec_resp_sender.send(executed_result);
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }
@@ -202,6 +258,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Err(e) => warn!("receive call_req_receiver error: {}", e),
                     }
                 },
+                recv(command_req_receiver) -> command_request => {
+                    match command_request {
+                        Ok(command_request) => {
+                            trace!("executor receive {}", command_request);
+                            let _ = command_resp_sender.send(executor.operate(command_request));
+                        },
+                        Err(e) => warn!("receive command_req_receiver error: {}", e),
+                    }
+                }
             }
         });
 
@@ -210,22 +275,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .build()
             .unwrap()
             .block_on(async {
-                let executor_svc = ExecutorServiceServer::new(ExecutorServer {
+                let inner = ExecutorServer {
                     exec_req_sender,
                     exec_resp_receiver,
                     call_req_sender,
                     call_resp_receiver,
-                });
+                    command_req_sender,
+                    command_resp_receiver,
+                };
+                let executor_svc = ExecutorServiceServer::new(inner.clone());
+                let rpc_svc = RpcServiceServer::new(inner);
                 Server::builder()
                     .add_service(executor_svc)
+                    .add_service(rpc_svc)
                     .serve(executor_addr)
                     .await
                     .unwrap();
             });
-
 
         handle.join().expect("unreachable!");
     }
 
     Ok(())
 }
+
+pub mod core_chain;
+pub mod core_executor;
+#[cfg(test)]
+mod tests;
+pub mod types;

@@ -132,7 +132,12 @@ impl Into<CloudLog> for LocalizedLog {
     fn into(self) -> CloudLog {
         CloudLog {
             address: self.log.address.to_vec(),
-            topics: self.log.topics.into_iter().map(|topic| topic.to_vec() ).collect(),
+            topics: self
+                .log
+                .topics
+                .into_iter()
+                .map(|topic| topic.to_vec())
+                .collect(),
             data: self.log.data.to_vec(),
             block_hash: self.block_hash.to_vec(),
             block_number: self.block_number,

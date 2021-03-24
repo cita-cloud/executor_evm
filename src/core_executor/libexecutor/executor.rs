@@ -15,6 +15,7 @@
 use super::sys_config::GlobalSysConfig;
 
 use crate::core_chain::context::LastHashes;
+use crate::core_chain::libchain::chain::Chain;
 use crate::core_executor::contracts::solc::NodeManager;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::trie_db::TrieDB;
@@ -30,7 +31,6 @@ use rlp::{decode, encode};
 use std::convert::Into;
 use std::sync::Arc;
 use util::RwLock;
-use crate::core_chain::libchain::chain::Chain;
 
 pub type CitaTrieDB = TrieDB<RocksDB>;
 pub type CitaDB = RocksDB;
@@ -46,10 +46,7 @@ pub struct Executor {
 
 impl Executor {
     #[allow(unknown_lints, clippy::too_many_arguments)] // TODO clippy
-    pub fn init(
-        data_path: String,
-        eth_compatibility: bool,
-    ) -> Executor {
+    pub fn init(data_path: String, eth_compatibility: bool) -> Executor {
         // TODO: Can remove NUM_COLUMNS(useless)
         let config = Config::with_category_num(NUM_COLUMNS);
         let statedb_path = data_path.clone() + "/statedb";
@@ -252,8 +249,13 @@ impl Executor {
     /// Build last 256 block hashes.
     pub fn build_last_hashes(&self, prevhash: Option<H256>, parent_height: u64) -> LastHashes {
         let parent_hash = prevhash.unwrap_or_else(|| {
-            self.block_hash(parent_height)
-                .unwrap_or_else(|| panic!("invalid block height: {}", parent_height))
+            self.block_hash(parent_height).unwrap_or_else(|| {
+                if parent_height == 0 {
+                    H256::zero()
+                } else {
+                    panic!("invalid block height: {}", parent_height)
+                }
+            })
         });
 
         let mut last_hashes = LastHashes::new();

@@ -29,6 +29,8 @@ extern crate crossbeam_channel;
 #[macro_use]
 extern crate libproto;
 
+use crate::core_executor::libexecutor::command::{Command, CommandResp};
+use crate::core_executor::libexecutor::ExecutedResult;
 use crate::types::block::OpenBlock;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::Bytes;
@@ -44,6 +46,7 @@ use cita_cloud_proto::executor::executor_service_server::{ExecutorService, Execu
 use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
+use cita_types::{Address, H256};
 use clap::{App, Arg};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
@@ -58,9 +61,6 @@ use tokio::fs;
 use tonic::transport::Server;
 use tonic::{Code, Request, Response, Status};
 use util::set_panic_handler;
-use crate::core_executor::libexecutor::command::{Command, CommandResp};
-use cita_types::{H256, Address};
-use crate::core_executor::libexecutor::ExecutedResult;
 
 const GIT_VERSION: &str = git_version!(
     args = ["--tags", "--always", "--dirty=-modified"],
@@ -108,7 +108,11 @@ impl ExecutorService for ExecutorServer {
         let _ = self.exec_req_sender.send(open_blcok);
         match self.exec_resp_receiver.recv() {
             Ok(executed_result) => {
-                let stat_root = executed_result.get_executed_info().get_header().state_root.to_vec();
+                let stat_root = executed_result
+                    .get_executed_info()
+                    .get_header()
+                    .state_root
+                    .to_vec();
                 info!("{}", hex::encode(stat_root.clone()));
                 Ok(Response::new(CloudHash { hash: stat_root }))
             }
@@ -140,11 +144,15 @@ impl RpcService for ExecutorServer {
         request: Request<CloudHash>,
     ) -> Result<Response<CloudReceipt>, Status> {
         let cloud_hash = request.into_inner();
-        let _ = self.command_req_sender.send(Command::ReceiptAt(H256::from(cloud_hash.hash.as_slice())));
+        let _ = self
+            .command_req_sender
+            .send(Command::ReceiptAt(H256::from(cloud_hash.hash.as_slice())));
 
         match self.command_resp_receiver.recv() {
-            Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => Ok(Response::new(rich_receipt.into())),
-            _ => Err(Status::new(Code::NotFound, "Not get the receipt"))
+            Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => {
+                Ok(Response::new(rich_receipt.into()))
+            }
+            _ => Err(Status::new(Code::NotFound, "Not get the receipt")),
         }
     }
 
@@ -153,11 +161,16 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteCode>, Status> {
         let cloud_addres = request.into_inner();
-        let _ = self.command_req_sender.send(Command::CodeAt(Address::from(cloud_addres.address.as_slice()), BlockTag::Tag(Tag::Pending)));
+        let _ = self.command_req_sender.send(Command::CodeAt(
+            Address::from(cloud_addres.address.as_slice()),
+            BlockTag::Tag(Tag::Pending),
+        ));
 
         match self.command_resp_receiver.recv() {
-            Ok(CommandResp::CodeAt(Some(byte_code))) => Ok(Response::new(CloudByteCode { byte_code })),
-            _ => Err(Status::new(Code::NotFound, "Not get the bytecode"))
+            Ok(CommandResp::CodeAt(Some(byte_code))) => {
+                Ok(Response::new(CloudByteCode { byte_code }))
+            }
+            _ => Err(Status::new(Code::NotFound, "Not get the bytecode")),
         }
     }
 
@@ -166,11 +179,14 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudBalance>, Status> {
         let cloud_addres = request.into_inner();
-        let _ = self.command_req_sender.send(Command::BalanceAt(Address::from(cloud_addres.address.as_slice()), BlockTag::Tag(Tag::Pending)));
+        let _ = self.command_req_sender.send(Command::BalanceAt(
+            Address::from(cloud_addres.address.as_slice()),
+            BlockTag::Tag(Tag::Pending),
+        ));
 
         match self.command_resp_receiver.recv() {
             Ok(CommandResp::BalanceAt(Some(value))) => Ok(Response::new(CloudBalance { value })),
-            _ => Err(Status::new(Code::NotFound, "Not get the balance"))
+            _ => Err(Status::new(Code::NotFound, "Not get the balance")),
         }
     }
 }
@@ -222,10 +238,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let executor_addr = format!("127.0.0.1:{}", grpc_port).parse()?;
 
         let data_path = String::from("./data");
-        let mut executor = Executor::init(
-            data_path,
-            eth_compatibility,
-        );
+        let mut executor = Executor::init(data_path, eth_compatibility);
 
         let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();
         let (exec_resp_sender, exec_resp_receiver) = crossbeam_channel::unbounded();
@@ -233,7 +246,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (call_resp_sender, call_resp_receiver) = crossbeam_channel::bounded(0);
         let (command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
         let (command_resp_sender, command_resp_receiver) = crossbeam_channel::bounded(0);
-
 
         let handle = thread::spawn(move || loop {
             select! {

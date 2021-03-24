@@ -221,12 +221,13 @@ impl Into<RpcReceipt> for RichReceipt {
 impl Into<CloudReceipt> for RichReceipt {
     fn into(self) -> CloudReceipt {
         let mut cumulative_quota_used = [0; 32];
-        self.cumulative_quota_used.to_big_endian(&mut cumulative_quota_used);
+        self.cumulative_quota_used
+            .to_big_endian(&mut cumulative_quota_used);
         let mut quota_used = [0; 32];
         self.quota_used.to_big_endian(&mut quota_used);
         let contract_address = match self.contract_address {
             Some(address) => address.to_vec(),
-            None => vec![0;20],
+            None => vec![0; 20],
         };
         let state_root = match self.state_root {
             Some(root) => root.to_vec(),
@@ -243,7 +244,10 @@ impl Into<CloudReceipt> for RichReceipt {
             logs: self.logs.into_iter().map(Into::into).collect(),
             state_root,
             logs_bloom: self.log_bloom.to_vec(),
-            error_message: self.error.map(ReceiptError::description).unwrap_or("".to_string())
+            error_message: self
+                .error
+                .map(ReceiptError::description)
+                .unwrap_or("".to_string()),
         }
     }
 }

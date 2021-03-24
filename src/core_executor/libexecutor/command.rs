@@ -15,6 +15,7 @@
 use super::economical_model::EconomicalModel;
 use super::executor::CitaTrieDB;
 use super::executor::Executor;
+use crate::core_chain::libchain::chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::contracts::solc::{sys_config::ChainId, SysConfig, VersionManager};
 use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
@@ -25,6 +26,7 @@ use crate::types::block_number::{BlockTag, Tag};
 use crate::types::context::Context;
 use crate::types::errors::CallError;
 use crate::types::errors::ExecutionError;
+use crate::types::receipt::RichReceipt;
 use crate::types::transaction::{Action, SignedTransaction, Transaction};
 use crate::types::Bytes;
 pub use byteorder::{BigEndian, ByteOrder};
@@ -42,8 +44,6 @@ use std::convert::{From, Into};
 use std::fmt;
 use std::sync::Arc;
 use util::RwLock;
-use crate::core_chain::libchain::chain::Chain;
-use crate::types::receipt::RichReceipt;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
 pub enum Command {
@@ -208,9 +208,7 @@ impl Commander for Executor {
             Command::CloneExecutorReader => {
                 CommandResp::CloneExecutorReader(self.clone_executor_reader())
             }
-            Command::ReceiptAt(tx_hash) => {
-                CommandResp::ReceiptAt(self.receipt_at(tx_hash))
-            }
+            Command::ReceiptAt(tx_hash) => CommandResp::ReceiptAt(self.receipt_at(tx_hash)),
         }
     }
 

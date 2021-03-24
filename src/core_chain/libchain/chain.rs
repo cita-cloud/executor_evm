@@ -54,11 +54,11 @@ use cita_types::traits::LowerHex;
 use cita_types::{Address, Bloom as LogBloom, H256, U256};
 
 use crate::core_chain::filters::filterdb::FilterDB;
+use crate::core_executor::cita_executive::create_address_from_address_and_nonce;
 use crate::types::db_indexes::DBIndex;
 use cita_database as cita_db;
 use cita_database::{Database, RocksDB};
 use rlp::{self, decode, Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
-use crate::core_executor::cita_executive::create_address_from_address_and_nonce;
 
 pub const VERSION: u32 = 0;
 const LOG_BLOOMS_LEVELS: usize = 3;
@@ -958,7 +958,10 @@ impl Chain {
                     let block_number = self.block_height_by_hash(block_hash).unwrap_or(0);
                     let contract_address = match *stx.action() {
                         Action::Create if last_receipt.error.is_none() => {
-                            Some(create_address_from_address_and_nonce(stx.sender(), &last_receipt.account_nonce))
+                            Some(create_address_from_address_and_nonce(
+                                stx.sender(),
+                                &last_receipt.account_nonce,
+                            ))
                         }
                         _ => None,
                     };

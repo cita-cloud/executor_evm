@@ -89,35 +89,16 @@ pub fn solc(name: &str, source: &str) -> (Vec<u8>, Vec<u8>) {
 }
 
 pub fn init_executor() -> Executor {
-    let (_fsm_req_sender, fsm_req_receiver) = crossbeam_channel::unbounded();
-    let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
-    let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
-    let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-    init_executor2(
-        fsm_req_receiver,
-        fsm_resp_sender,
-        command_req_receiver,
-        command_resp_sender,
-    )
+    init_executor2()
 }
 
 pub fn init_executor2(
-    fsm_req_receiver: Receiver<OpenBlock>,
-    fsm_resp_sender: Sender<ClosedBlock>,
-    command_req_receiver: Receiver<command::Command>,
-    command_resp_sender: Sender<command::CommandResp>,
 ) -> Executor {
-    // FIXME temp dir should be removed automatically, but at present it is not
-    let tempdir = TempDir::new("init_executor").unwrap().into_path();
-    let genesis_path = Path::new(SCRIPTS_DIR).join("config_tool/genesis/genesis.json");
-
     let mut data_path = tempdir.clone();
     data_path.push("data");
     env::set_var("DATA_PATH", data_path);
     let executor = Executor::init(
         tempdir.to_str().unwrap().to_string(),
-        command_req_receiver,
-        command_resp_sender,
         false,
     );
     executor

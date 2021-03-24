@@ -253,12 +253,7 @@ mod tests {
         let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
         let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
         let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-        let executor = init_executor2(
-            fsm_req_receiver.clone(),
-            fsm_resp_sender,
-            command_req_receiver,
-            command_resp_sender,
-        );
+        let executor = init_executor2();
         let mut open_block = generate_empty_block();
         let executed_block = executor.to_executed_block(open_block.clone());
 
@@ -285,12 +280,7 @@ mod tests {
         let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
         let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
         let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-        let executor = init_executor2(
-            fsm_req_receiver.clone(),
-            fsm_resp_sender,
-            command_req_receiver,
-            command_resp_sender,
-        );
+        let executor = init_executor2();
         let open_block = generate_empty_block();
         let executed_block = executor.to_executed_block(open_block.clone());
         let executed_block_clone = executor.to_executed_block(open_block.clone());
@@ -315,12 +305,7 @@ mod tests {
         let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
         let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
         let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-        let mut executor = init_executor2(
-            fsm_req_receiver.clone(),
-            fsm_resp_sender,
-            command_req_receiver,
-            command_resp_sender,
-        );
+        let mut executor = init_executor2();
         let open_block = generate_block(&executor, 2);
 
         // 1. init -> pause(0) -> execute(1) -> pause(1)
@@ -384,12 +369,7 @@ mod tests {
         let (fsm_resp_sender, _fsm_resp_receiver) = crossbeam_channel::unbounded();
         let (_command_req_sender, command_req_receiver) = crossbeam_channel::bounded(0);
         let (command_resp_sender, _command_resp_receiver) = crossbeam_channel::bounded(0);
-        let mut executor = init_executor2(
-            fsm_req_receiver.clone(),
-            fsm_resp_sender,
-            command_req_receiver,
-            command_resp_sender,
-        );
+        let mut executor = init_executor2();
         let open_block = generate_block(&executor, 2);
 
         // 1. init -> pause(0) -> execute(1) -> pause(1)

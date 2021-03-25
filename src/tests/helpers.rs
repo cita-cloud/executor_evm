@@ -92,15 +92,11 @@ pub fn init_executor() -> Executor {
     init_executor2()
 }
 
-pub fn init_executor2(
-) -> Executor {
+pub fn init_executor2() -> Executor {
     let mut data_path = tempdir.clone();
     data_path.push("data");
     env::set_var("DATA_PATH", data_path);
-    let executor = Executor::init(
-        tempdir.to_str().unwrap().to_string(),
-        false,
-    );
+    let executor = Executor::init(tempdir.to_str().unwrap().to_string(), false);
     executor
 }
 

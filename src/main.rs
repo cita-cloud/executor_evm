@@ -66,7 +66,7 @@ const GIT_VERSION: &str = git_version!(
     args = ["--tags", "--always", "--dirty=-modified"],
     fallback = "unknown"
 );
-const GIT_HOMEPAGE: &str = "https://github.com/cita-cloud/executor_chaincode";
+const GIT_HOMEPAGE: &str = "https://github.com/cita-cloud/executor_evm";
 
 #[derive(Clone)]
 pub struct ExecutorServer {
@@ -108,13 +108,16 @@ impl ExecutorService for ExecutorServer {
         let _ = self.exec_req_sender.send(open_blcok);
         match self.exec_resp_receiver.recv() {
             Ok(executed_result) => {
-                let stat_root = executed_result
-                    .get_executed_info()
-                    .get_header()
-                    .state_root
-                    .to_vec();
-                info!("{}", hex::encode(stat_root.clone()));
-                Ok(Response::new(CloudHash { hash: stat_root }))
+                let header = executed_result.get_executed_info().get_header();
+                let state_root = header.get_state_root();
+                info!(
+                    "height: {}, state_root: {}",
+                    header.get_height(),
+                    hex::encode(state_root)
+                );
+                Ok(Response::new(CloudHash {
+                    hash: state_root.to_vec(),
+                }))
             }
             Err(recv_error) => Err(Status::new(Code::Internal, recv_error.to_string())),
         }

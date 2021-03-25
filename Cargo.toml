@@ -72,7 +72,7 @@ snappy = { git = "https://github.com/citahub/cita-common.git", branch = "develop
 proof = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 pubsub = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 
-cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto"}
+cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto" }
 
 [dependencies.cita-vm]
 git = "https://github.com/citahub/cita-vm.git"

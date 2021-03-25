@@ -509,7 +509,12 @@ impl Chain {
             let receipts: Vec<Receipt> = info
                 .get_receipts()
                 .iter()
-                .map(|r| Receipt::from(r.get_receipt().clone()))
+                .map(|r| {
+                    Receipt::from_with_state_root(
+                        r.get_receipt().clone(),
+                        Some(H256::from(info.get_header().get_state_root())),
+                    )
+                })
                 .collect();
             let block_receipts = BlockReceipts::new(receipts);
             let hash_key = Hash2BlockReceipts(header_hash).get_index();

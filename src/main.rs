@@ -29,8 +29,7 @@ extern crate crossbeam_channel;
 #[macro_use]
 extern crate libproto;
 
-use types::block::OpenBlock;
-use types::block_number::{BlockTag, Tag};
+use crate::executor_server::ExecutorServer;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use clap::{App, Arg};
@@ -41,8 +40,9 @@ use core_executor::libexecutor::fsm::FSM;
 use git_version::git_version;
 use std::thread;
 use tonic::transport::Server;
+use types::block::OpenBlock;
+use types::block_number::{BlockTag, Tag};
 use util::set_panic_handler;
-use crate::executor_server::ExecutorServer;
 
 const GIT_VERSION: &str = git_version!(
     args = ["--tags", "--always", "--dirty=-modified"],
@@ -172,7 +172,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 pub mod core_chain;
 pub mod core_executor;
+mod executor_server;
 #[cfg(test)]
 mod tests;
 pub mod types;
-mod executor_server;

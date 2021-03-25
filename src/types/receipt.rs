@@ -86,6 +86,50 @@ impl Receipt {
         receipt_proto.set_transaction_hash(self.transaction_hash.to_vec());
         receipt_proto
     }
+
+    pub fn from_with_state_root(receipt: ProtoReceipt, state_root: Option<H256>) -> Self {
+        let quota_used: U256 = U256::from_str(receipt.get_quota_used()).unwrap();
+        let account_nonce: U256 = U256::from(receipt.get_account_nonce());
+        let transaction_hash: H256 = H256::from_slice(receipt.get_transaction_hash());
+        let mut error = None;
+
+        let logs = receipt
+            .get_logs()
+            .iter()
+            .map(|log_entry| {
+                let address: Address = Address::from_slice(log_entry.get_address());
+                let topics: Vec<H256> = log_entry
+                    .get_topics()
+                    .iter()
+                    .map(|topic| H256::from_slice(topic))
+                    .collect();
+                let data: Bytes = Bytes::from(log_entry.get_data());
+                Log {
+                    address,
+                    topics,
+                    data,
+                }
+            })
+            .collect();
+
+        if receipt.error.is_some() {
+            #[allow(clippy::redundant_clone)]
+            {
+                error = Some(ReceiptError::from_proto(
+                    receipt.clone().take_error().get_error(),
+                ));
+            }
+        }
+
+        Receipt::new(
+            state_root,
+            quota_used,
+            logs,
+            error,
+            account_nonce,
+            transaction_hash,
+        )
+    }
 }
 
 impl From<ProtoReceipt> for Receipt {

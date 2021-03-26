@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use super::block::{ClosedBlock, ExecutedBlock, OpenBlock};
-use super::economical_model::EconomicalModel;
 use super::executor::Executor;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
@@ -102,15 +101,8 @@ impl FSM for Executor {
     }
 
     fn fsm_execute(&self, mut executed_block: ExecutedBlock, index: usize) -> StatusOfFSM {
-        let conf = self.sys_config.block_sys_config.clone();
-        let mut transaction = executed_block.body().transactions[index - 1].clone();
-        let quota_price = conf.quota_price;
-        let economical_model: EconomicalModel = conf.economical_model;
-        if economical_model == EconomicalModel::Charge {
-            transaction.gas_price = quota_price;
-        }
-
-        executed_block.apply_transaction(&transaction, &self.sys_config);
+        let transaction = executed_block.body().transactions[index - 1].clone();
+        executed_block.apply_transaction(&transaction);
         StatusOfFSM::Pause(executed_block, index)
     }
 
@@ -120,7 +112,7 @@ impl FSM for Executor {
             .borrow_mut()
             .commit()
             .expect("Commit state error.");
-        executed_block.close(&(self.sys_config.block_sys_config))
+        executed_block.close()
     }
 }
 
@@ -324,7 +316,7 @@ mod tests {
 
         // 2. execute 1th transaction
         let transaction = executed_block.body().transactions[0].clone();
-        executed_block.apply_transaction(&transaction, &executor.sys_config);
+        executed_block.apply_transaction(&transaction);
         executed_block
             .state
             .borrow_mut()
@@ -342,7 +334,7 @@ mod tests {
 
         // 4. continue until finalize
         let transaction = executed_block.body().transactions[1].clone();
-        executed_block.apply_transaction(&transaction, &executor.sys_config);
+        executed_block.apply_transaction(&transaction);
         executed_block
             .state
             .borrow_mut()
@@ -387,7 +379,7 @@ mod tests {
         let mut transactions = { executed_block.body.transactions.clone() };
         for transaction in transactions.iter_mut() {
             // let mut t = transaction.clone();
-            executed_block.apply_transaction(&transaction, &executor.sys_config);
+            executed_block.apply_transaction(&transaction);
         }
         executed_block
             .state

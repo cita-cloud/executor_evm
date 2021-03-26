@@ -23,13 +23,10 @@ extern crate lazy_static;
 #[cfg_attr(test, macro_use)]
 extern crate serde_json;
 #[macro_use]
-extern crate enum_primitive;
-#[macro_use]
 extern crate crossbeam_channel;
 #[macro_use]
 extern crate libproto;
 
-use crate::executor_server::ExecutorServer;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use clap::{App, Arg};
@@ -37,12 +34,14 @@ use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::FSM;
+use executor_server::ExecutorServer;
 use git_version::git_version;
 use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
 use types::block_number::{BlockTag, Tag};
 use util::set_panic_handler;
+// extern crate enum_primitive;
 
 const GIT_VERSION: &str = git_version!(
     args = ["--tags", "--always", "--dirty=-modified"],

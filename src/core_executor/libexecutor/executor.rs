@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::sys_config::GlobalSysConfig;
-
 use crate::core_chain::context::LastHashes;
 use crate::core_chain::libchain::chain::Chain;
-use crate::core_executor::contracts::solc::NodeManager;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::trie_db::TrieDB;
 use crate::types::block_number::{BlockTag, Tag};
@@ -39,7 +36,6 @@ pub struct Executor {
     pub current_header: RwLock<Header>,
     pub state_db: Arc<CitaTrieDB>,
     pub db: Arc<dyn Database>,
-    pub sys_config: GlobalSysConfig,
     pub eth_compatibility: bool,
     pub core_chain: Chain,
 }
@@ -69,7 +65,6 @@ impl Executor {
             current_header: RwLock::new(current_header),
             state_db,
             db,
-            sys_config: GlobalSysConfig::default(),
             eth_compatibility,
             core_chain,
         };
@@ -302,11 +297,6 @@ impl Executor {
         executed_result
     }
 
-    #[inline]
-    pub fn node_manager(&self) -> NodeManager {
-        NodeManager::new(self, self.genesis_header().timestamp())
-    }
-
     pub fn to_executed_block(&self, open_block: OpenBlock) -> ExecutedBlock {
         let current_state_root = self.current_state_root();
         let last_hashes = {
@@ -318,7 +308,6 @@ impl Executor {
         };
 
         ExecutedBlock::create(
-            &self.sys_config.block_sys_config,
             open_block,
             self.state_db.clone(),
             current_state_root,
@@ -348,38 +337,6 @@ pub fn get_current_header(db: Arc<CitaDB>) -> Option<Header> {
     }
 }
 
-pub fn make_consensus_config(sys_config: GlobalSysConfig) -> ConsensusConfig {
-    let block_quota_limit = sys_config.block_quota_limit as u64;
-    let account_quota_limit = sys_config.block_sys_config.account_quota_limit.into();
-    let node_list = sys_config
-        .nodes
-        .into_iter()
-        .map(|address| address.to_vec())
-        .collect();
-    let validators = sys_config
-        .validators
-        .into_iter()
-        .map(|address| address.to_vec())
-        .collect();
-    let mut consensus_config = ConsensusConfig::new();
-    consensus_config.set_block_quota_limit(block_quota_limit);
-    consensus_config.set_account_quota_limit(account_quota_limit);
-    consensus_config.set_nodes(node_list);
-    consensus_config.set_validators(validators);
-    consensus_config.set_check_quota(sys_config.block_sys_config.check_options.quota);
-    consensus_config.set_block_interval(sys_config.block_interval);
-    consensus_config.set_version(sys_config.block_sys_config.chain_version);
-    if sys_config.emergency_intervention {
-        let super_admin_account = sys_config
-            .block_sys_config
-            .super_admin_account
-            .unwrap()
-            .to_vec();
-        consensus_config.set_admin_address(super_admin_account);
-    }
-
-    consensus_config
-}
 #[cfg(test)]
 mod tests {
     extern crate cita_logger as logger;

@@ -16,13 +16,11 @@
 pub mod benches;
 pub mod cita_executive;
 pub mod cita_vm_helper;
-pub mod contracts;
 pub mod data_provider;
 pub mod libexecutor;
 pub mod storage;
 pub mod tx_gas_schedule;
 
-mod authentication;
 mod exception;
 mod trie_db;
 

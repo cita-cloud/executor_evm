@@ -47,13 +47,12 @@ use crate::types::db_indexes::{
 use crate::types::block::{Block, BlockBody, OpenBlock};
 use crate::types::{
     block_number::BlockTag, block_number::Tag, block_number::TransactionHash,
-    block_receipts::BlockReceipts, filter::Filter, log::LocalizedLog, log::Log,
-    transaction::Action, transaction::SignedTransaction, transaction_index::TransactionIndex,
+    block_receipts::BlockReceipts, log::LocalizedLog, log::Log, transaction::Action,
+    transaction::SignedTransaction, transaction_index::TransactionIndex,
 };
 use cita_types::traits::LowerHex;
 use cita_types::{Address, Bloom as LogBloom, H256, U256};
 
-use crate::core_chain::filters::filterdb::FilterDB;
 use crate::core_executor::cita_executive::create_address_from_address_and_nonce;
 use crate::types::db_indexes::DBIndex;
 use cita_database as cita_db;
@@ -304,8 +303,6 @@ pub struct Chain {
     pub account_quota_limit: RwLock<ProtoAccountGasLimit>,
     pub check_quota: AtomicBool,
 
-    /// Filter Database
-    pub filterdb: Arc<Mutex<FilterDB>>,
     /// Proof type
     pub prooftype: u8,
     // snapshot flag
@@ -386,7 +383,6 @@ impl Chain {
             max_store_height,
             block_map: RwLock::new(BTreeMap::new()),
             db,
-            filterdb: Arc::new(Mutex::new(FilterDB::new())),
             nodes: RwLock::new(Vec::new()),
             validators: RwLock::new(Vec::new()),
             // need to be cautious here
@@ -1199,22 +1195,6 @@ impl Chain {
         }
     }
 
-    pub fn get_logs(&self, filter: &Filter) -> Vec<LocalizedLog> {
-        let blocks = filter
-            .zip_blooms()
-            .iter()
-            .filter_map(|bloom| {
-                self.blocks_with_bloom_by_id(bloom, filter.from_block, filter.to_block)
-            })
-            .flat_map(|m| m)
-            // remove duplicate elements
-            .collect::<HashSet<u64>>()
-            .into_iter()
-            .collect::<Vec<u64>>();
-
-        self.logs(blocks, |entry| filter.matches(entry), filter.limit)
-    }
-
     /// Delivery block tx hashes to auth
     pub fn delivery_block_tx_hashes(
         &self,
@@ -1415,10 +1395,6 @@ impl Chain {
         } else {
             (0, 0)
         }
-    }
-
-    pub fn filter_db(&self) -> Arc<Mutex<FilterDB>> {
-        Arc::clone(&self.filterdb)
     }
 
     /// clear sync block

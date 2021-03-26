@@ -13,5 +13,4 @@
 // limitations under the License.
 
 pub mod chain;
-pub mod rich_status;
 pub mod status;

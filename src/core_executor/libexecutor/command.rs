@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::economical_model::EconomicalModel;
 use super::executor::CitaTrieDB;
 use super::executor::Executor;
 use crate::core_chain::libchain::chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
-use crate::core_executor::contracts::solc::{sys_config::ChainId, SysConfig, VersionManager};
 use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
 use crate::core_executor::trie_db::TrieDB;
-use crate::types::block_number::{BlockTag, Tag};
+use crate::types::block_number::BlockTag;
 use crate::types::context::Context;
 use crate::types::errors::CallError;
 use crate::types::errors::ExecutionError;
@@ -34,10 +32,6 @@ use cita_database::RocksDB;
 use cita_types::{Address, H256, U256};
 use cita_vm::state::{State as CitaState, StateObjectInfo};
 use crossbeam_channel::{Receiver, Sender};
-use jsonrpc_types::rpc_types::{
-    BlockNumber as RpcBlockNumber, BlockTag as RpcBlockTag, EconomicalModel as RpcEconomicalModel,
-    MetaData,
-};
 use libproto::{ConsensusConfig, ExecutedResult};
 use std::cell::RefCell;
 use std::convert::{From, Into};
@@ -57,9 +51,6 @@ pub enum Command {
     EstimateQuota(CallRequest, BlockTag),
     SignCall(CallRequest),
     Call(SignedTransaction, BlockTag),
-    ChainID,
-    Metadata(String),
-    EconomicalModel,
     LoadExecutedResult(u64),
     Grow(ClosedBlock),
     Exit(BlockTag),
@@ -79,9 +70,6 @@ pub enum CommandResp {
     EstimateQuota(Result<Bytes, String>),
     SignCall(SignedTransaction),
     Call(Result<CitaExecuted, CallError>),
-    ChainID(Option<ChainId>),
-    Metadata(Result<MetaData, String>),
-    EconomicalModel(EconomicalModel),
     LoadExecutedResult(ExecutedResult),
     Grow(ExecutedResult),
     Exit,
@@ -102,9 +90,6 @@ impl fmt::Display for Command {
             Command::EstimateQuota(_, _) => write!(f, "Command::EstimateQuota"),
             Command::SignCall(_) => write!(f, "Command::SignCall"),
             Command::Call(_, _) => write!(f, "Command::Call"),
-            Command::ChainID => write!(f, "Command::ChainID "),
-            Command::Metadata(_) => write!(f, "Command::Metadata"),
-            Command::EconomicalModel => write!(f, "Command::EconomicalModel"),
             Command::LoadExecutedResult(_) => write!(f, "Command::LoadExecutedResult"),
             Command::Grow(_) => write!(f, "Command::Grow"),
             Command::Exit(_) => write!(f, "Command::Exit"),
@@ -127,9 +112,6 @@ impl fmt::Display for CommandResp {
             CommandResp::EstimateQuota(_) => write!(f, "CommandResp::EstimateQuota"),
             CommandResp::SignCall(_) => write!(f, "CommandResp::SignCall"),
             CommandResp::Call(_) => write!(f, "CommandResp::Call"),
-            CommandResp::ChainID(_) => write!(f, "CommandResp::ChainID "),
-            CommandResp::Metadata(_) => write!(f, "CommandResp::Metadata"),
-            CommandResp::EconomicalModel(_) => write!(f, "CommandResp::EconomicalModel"),
             CommandResp::LoadExecutedResult(_) => write!(f, "CommandResp::LoadExecutedResult"),
             CommandResp::Grow(_) => write!(f, "CommandResp::Grow"),
             CommandResp::Exit => write!(f, "CommandResp::Exit"),
@@ -151,9 +133,6 @@ pub trait Commander {
     fn estimate_quota(&self, request: CallRequest, block_tag: BlockTag) -> Result<Bytes, String>;
     fn sign_call(&self, request: CallRequest) -> SignedTransaction;
     fn call(&self, t: &SignedTransaction, block_tag: BlockTag) -> Result<CitaExecuted, CallError>;
-    fn chain_id(&self) -> Option<ChainId>;
-    fn metadata(&self, data: String) -> Result<MetaData, String>;
-    fn economical_model(&self) -> EconomicalModel;
     fn load_executed_result(&self, height: u64) -> ExecutedResult;
     fn grow(&mut self, closed_block: &ClosedBlock) -> ExecutedResult;
     fn exit(&mut self, rollback_id: BlockTag);
@@ -190,9 +169,6 @@ impl Commander for Executor {
             Command::Call(signed_transaction, block_tag) => {
                 CommandResp::Call(self.call(&signed_transaction, block_tag))
             }
-            Command::ChainID => CommandResp::ChainID(self.chain_id()),
-            Command::Metadata(data) => CommandResp::Metadata(self.metadata(data)),
-            Command::EconomicalModel => CommandResp::EconomicalModel(self.economical_model()),
             Command::LoadExecutedResult(height) => {
                 CommandResp::LoadExecutedResult(self.load_executed_result(height))
             }
@@ -259,7 +235,7 @@ impl Commander for Executor {
 
     fn estimate_quota(&self, request: CallRequest, id: BlockTag) -> Result<Bytes, String> {
         // The estimated transaction cost cannot exceed BQL
-        let max_quota = U256::from(self.sys_config.block_quota_limit);
+        let max_quota = U256::max_value();
         let precision = U256::from(1024);
 
         let signed = self.sign_call(request);
@@ -284,8 +260,6 @@ impl Commander for Executor {
         };
         let block_data_provider = Arc::new(EVMBlockDataProvider::new(context.clone()));
 
-        let mut conf = self.sys_config.block_sys_config.clone();
-        conf.exempt_checking();
         let sender = *signed.sender();
 
         // Try different quota to run tx.
@@ -302,14 +276,7 @@ impl Commander for Executor {
             })?;
             let state = Arc::new(RefCell::new(state));
 
-            let clone_conf = conf.clone();
-            CitaExecutive::new(
-                block_data_provider.clone(),
-                state,
-                &context.clone(),
-                clone_conf.economical_model,
-            )
-            .exec(&tx, &clone_conf)
+            CitaExecutive::new(block_data_provider.clone(), state, &context.clone()).exec(&tx)
         };
         let check_quota = |quota| {
             exec_tx(quota).ok().map_or((false, U256::from(0)), |r| {
@@ -404,15 +371,12 @@ impl Commander for Executor {
             block_quota_limit: *header.quota_limit(),
             account_quota_limit: u64::max_value().into(),
         };
-        context.block_quota_limit = U256::from(self.sys_config.block_quota_limit);
+        // context.block_quota_limit = U256::from(self.sys_config.block_quota_limit);
+        context.block_quota_limit = U256::max_value();
 
         // FIXME: Need to implement state_at
         // that's just a copy of the state.
         //        let mut state = self.state_at(block_tag).ok_or(CallError::StatePruned)?;
-
-        // Never check permission and quota
-        let mut conf = self.sys_config.block_sys_config.clone();
-        conf.exempt_checking();
 
         let block_data_provider = EVMBlockDataProvider::new(context.clone());
 
@@ -435,120 +399,9 @@ impl Commander for Executor {
         };
 
         let state = Arc::new(RefCell::new(state));
-        CitaExecutive::new(
-            Arc::new(block_data_provider),
-            state,
-            &context,
-            conf.economical_model,
-        )
-        .exec(t, &conf)
-        .map_err(Into::into)
-    }
-
-    fn chain_id(&self) -> Option<ChainId> {
-        let version_manager = VersionManager::new(&self);
-        let system_config = SysConfig::new(&self);
-        system_config.deal_chain_id_version(&version_manager)
-    }
-
-    fn metadata(&self, data: String) -> Result<MetaData, String> {
-        trace!("metadata request from jsonrpc {:?}", data);
-        let economical_model: RpcEconomicalModel =
-            (self.sys_config.block_sys_config.economical_model).into();
-        let mut metadata = MetaData {
-            chain_id: 0,
-            chain_id_v1: U256::from(0).into(),
-            chain_name: "".to_owned(),
-            operator: "".to_owned(),
-            website: "".to_owned(),
-            genesis_timestamp: 0,
-            validators: Vec::new(),
-            block_interval: 0,
-            token_name: "".to_owned(),
-            token_symbol: "".to_owned(),
-            token_avatar: "".to_owned(),
-            version: 0,
-            economical_model,
-        };
-        let result = serde_json::from_str::<RpcBlockNumber>(&data)
-            .map_err(|err| format!("{:?}", err))
-            .and_then(|number: RpcBlockNumber| {
-                let current_height = self.get_current_height();
-                let number = match number {
-                    RpcBlockNumber::Tag(RpcBlockTag::Earliest) => 0,
-                    RpcBlockNumber::Height(n) => n.into(),
-                    RpcBlockNumber::Tag(RpcBlockTag::Latest) => current_height.saturating_sub(1),
-                    RpcBlockNumber::Tag(RpcBlockTag::Pending) => current_height,
-                };
-                if number > current_height {
-                    Err(format!(
-                        "Block number overflow: {} > {}",
-                        number, current_height
-                    ))
-                } else {
-                    Ok(number)
-                }
-            })
-            .and_then(|number| {
-                let sys_config = SysConfig::new(&self);
-                let block_tag = BlockTag::Height(number);
-                sys_config
-                    .chain_name(block_tag)
-                    .map(|chain_name| metadata.chain_name = chain_name)
-                    .ok_or_else(|| "Query chain name failed".to_owned())?;
-                sys_config
-                    .operator(block_tag)
-                    .map(|operator| metadata.operator = operator)
-                    .ok_or_else(|| "Query operator failed".to_owned())?;
-                sys_config
-                    .website(block_tag)
-                    .map(|website| metadata.website = website)
-                    .ok_or_else(|| "Query website failed".to_owned())?;
-                self.block_header(BlockTag::Tag(Tag::Earliest))
-                    .map(|header| metadata.genesis_timestamp = header.timestamp())
-                    .ok_or_else(|| "Query genesis_timestamp failed".to_owned())?;
-                self.node_manager()
-                    .shuffled_stake_nodes(block_tag)
-                    .map(|validators| {
-                        metadata.validators =
-                            validators.into_iter().map(Into::into).collect::<Vec<_>>()
-                    })
-                    .ok_or_else(|| "Query validators failed".to_owned())?;
-                sys_config
-                    .block_interval(block_tag)
-                    .map(|block_interval| metadata.block_interval = block_interval)
-                    .ok_or_else(|| "Query block_interval failed".to_owned())?;
-                sys_config
-                    .token_info(block_tag)
-                    .map(|token_info| {
-                        metadata.token_name = token_info.name;
-                        metadata.token_avatar = token_info.avatar;
-                        metadata.token_symbol = token_info.symbol;
-                    })
-                    .ok_or_else(|| "Query token info failed".to_owned())?;
-
-                let version_manager = VersionManager::new(&self);
-                metadata.version = version_manager
-                    .get_version(block_tag)
-                    .unwrap_or_else(VersionManager::default_version);
-
-                sys_config
-                    .deal_chain_id_version(&version_manager)
-                    .map(|chain_id| match chain_id {
-                        ChainId::V0(v0) => metadata.chain_id = v0,
-                        ChainId::V1(v1) => metadata.chain_id_v1 = v1.into(),
-                    })
-                    .ok_or_else(|| "Query chain id failed".to_owned())?;
-                Ok(())
-            });
-        match result {
-            Ok(()) => Ok(metadata),
-            Err(err) => Err(err),
-        }
-    }
-
-    fn economical_model(&self) -> EconomicalModel {
-        self.sys_config.block_sys_config.economical_model
+        CitaExecutive::new(Arc::new(block_data_provider), state, &context)
+            .exec(t)
+            .map_err(Into::into)
     }
 
     fn load_executed_result(&self, height: u64) -> ExecutedResult {
@@ -593,14 +446,12 @@ impl Commander for Executor {
         let current_header = self.current_header.read().clone();
         let state_db = self.state_db.clone();
         let db = self.db.clone();
-        let sys_config = self.sys_config.clone();
         let eth_compatibility = self.eth_compatibility;
         let core_chain = Chain::init_chain(self.core_chain.db.clone());
         Executor {
             current_header: RwLock::new(current_header),
             state_db,
             db,
-            sys_config,
             eth_compatibility,
             core_chain,
         }
@@ -738,40 +589,6 @@ pub fn call(
     let _ = command_req_sender.send(Command::Call(signed_transaction, block_tag));
     match command_resp_receiver.recv().unwrap() {
         CommandResp::Call(r) => r,
-        _ => unimplemented!(),
-    }
-}
-
-pub fn chain_id(
-    command_req_sender: &Sender<Command>,
-    command_resp_receiver: &Receiver<CommandResp>,
-) -> Option<ChainId> {
-    let _ = command_req_sender.send(Command::ChainID);
-    match command_resp_receiver.recv().unwrap() {
-        CommandResp::ChainID(r) => r,
-        _ => unimplemented!(),
-    }
-}
-
-pub fn metadata(
-    command_req_sender: &Sender<Command>,
-    command_resp_receiver: &Receiver<CommandResp>,
-    data: String,
-) -> Result<MetaData, String> {
-    let _ = command_req_sender.send(Command::Metadata(data));
-    match command_resp_receiver.recv().unwrap() {
-        CommandResp::Metadata(r) => r,
-        _ => unimplemented!(),
-    }
-}
-
-pub fn economical_model(
-    command_req_sender: &Sender<Command>,
-    command_resp_receiver: &Receiver<CommandResp>,
-) -> EconomicalModel {
-    let _ = command_req_sender.send(Command::EconomicalModel);
-    match command_resp_receiver.recv().unwrap() {
-        CommandResp::EconomicalModel(r) => r,
         _ => unimplemented!(),
     }
 }

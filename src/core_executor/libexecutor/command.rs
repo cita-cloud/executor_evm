@@ -372,7 +372,6 @@ impl Commander for Executor {
             account_quota_limit: u64::max_value().into(),
         };
         // context.block_quota_limit = U256::from(self.sys_config.block_quota_limit);
-        context.block_quota_limit = U256::max_value();
 
         // FIXME: Need to implement state_at
         // that's just a copy of the state.

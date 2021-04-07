@@ -16,10 +16,10 @@ use crate::types::header::{Header, OpenHeader};
 use crate::types::transaction::SignedTransaction;
 use crate::types::transaction_index::TransactionIndex;
 
+use crate::types::H256;
 use cita_cloud_proto::blockchain::{
     CompactBlock as CloudCompactBlock, UnverifiedTransaction as CloudUnverifiedTransaction,
 };
-use cita_types::H256;
 use libproto::blockchain::{
     Block as ProtoBlock, BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
 };

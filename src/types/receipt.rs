@@ -15,15 +15,15 @@
 //! Receipt
 
 use super::Bytes;
+
+use crate::types::LowerHex;
 use std::str::FromStr;
 
 use crate::types::block_number::BlockNumber;
 use crate::types::errors::ReceiptError;
 use crate::types::log::{LocalizedLog, Log};
-
+use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_cloud_proto::evm::Receipt as CloudReceipt;
-use cita_types::traits::LowerHex;
-use cita_types::{Address, Bloom as LogBloom, H256, U256};
 use jsonrpc_types::rpc_types::Receipt as RpcReceipt;
 use libproto::executor::{Receipt as ProtoReceipt, ReceiptErrorWithOption, StateRoot};
 use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};

@@ -12,20 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::sys_config::GlobalSysConfig;
-
-use crate::core_chain::context::LastHashes;
-use crate::core_chain::libchain::chain::Chain;
-use crate::core_executor::contracts::solc::NodeManager;
+use crate::core_chain::Chain;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::trie_db::TrieDB;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::db_indexes;
 use crate::types::db_indexes::DBIndex;
 use crate::types::header::*;
+use crate::types::H256;
 pub use byteorder::{BigEndian, ByteOrder};
 use cita_database::{Config, DataCategory, Database, RocksDB, NUM_COLUMNS};
-use cita_types::H256;
 use libproto::{ConsensusConfig, ExecutedResult};
 use rlp::{decode, encode};
 use std::convert::Into;
@@ -35,11 +31,12 @@ use util::RwLock;
 pub type CitaTrieDB = TrieDB<RocksDB>;
 pub type CitaDB = RocksDB;
 
+pub type LastHashes = Vec<H256>;
+
 pub struct Executor {
     pub current_header: RwLock<Header>,
     pub state_db: Arc<CitaTrieDB>,
     pub db: Arc<dyn Database>,
-    pub sys_config: GlobalSysConfig,
     pub eth_compatibility: bool,
     pub core_chain: Chain,
 }
@@ -69,7 +66,6 @@ impl Executor {
             current_header: RwLock::new(current_header),
             state_db,
             db,
-            sys_config: GlobalSysConfig::default(),
             eth_compatibility,
             core_chain,
         };
@@ -302,11 +298,6 @@ impl Executor {
         executed_result
     }
 
-    #[inline]
-    pub fn node_manager(&self) -> NodeManager {
-        NodeManager::new(self, self.genesis_header().timestamp())
-    }
-
     pub fn to_executed_block(&self, open_block: OpenBlock) -> ExecutedBlock {
         let current_state_root = self.current_state_root();
         let last_hashes = {
@@ -318,7 +309,6 @@ impl Executor {
         };
 
         ExecutedBlock::create(
-            &self.sys_config.block_sys_config,
             open_block,
             self.state_db.clone(),
             current_state_root,
@@ -348,38 +338,6 @@ pub fn get_current_header(db: Arc<CitaDB>) -> Option<Header> {
     }
 }
 
-pub fn make_consensus_config(sys_config: GlobalSysConfig) -> ConsensusConfig {
-    let block_quota_limit = sys_config.block_quota_limit as u64;
-    let account_quota_limit = sys_config.block_sys_config.account_quota_limit.into();
-    let node_list = sys_config
-        .nodes
-        .into_iter()
-        .map(|address| address.to_vec())
-        .collect();
-    let validators = sys_config
-        .validators
-        .into_iter()
-        .map(|address| address.to_vec())
-        .collect();
-    let mut consensus_config = ConsensusConfig::new();
-    consensus_config.set_block_quota_limit(block_quota_limit);
-    consensus_config.set_account_quota_limit(account_quota_limit);
-    consensus_config.set_nodes(node_list);
-    consensus_config.set_validators(validators);
-    consensus_config.set_check_quota(sys_config.block_sys_config.check_options.quota);
-    consensus_config.set_block_interval(sys_config.block_interval);
-    consensus_config.set_version(sys_config.block_sys_config.chain_version);
-    if sys_config.emergency_intervention {
-        let super_admin_account = sys_config
-            .block_sys_config
-            .super_admin_account
-            .unwrap()
-            .to_vec();
-        consensus_config.set_admin_address(super_admin_account);
-    }
-
-    consensus_config
-}
 #[cfg(test)]
 mod tests {
     extern crate cita_logger as logger;
@@ -389,8 +347,8 @@ mod tests {
     use crate::core_executor::libexecutor::fsm::FSM;
     use crate::tests::helpers;
     use crate::types::block_number::{BlockTag, Tag};
+    use crate::types::Address;
     use cita_crypto::{CreateKey, KeyPair};
-    use cita_types::Address;
     use std::thread;
     use std::time::Duration;
 
@@ -399,7 +357,7 @@ mod tests {
     // fn test_chain_name_valid_block_number() {
     //     use crate::core_executor::contracts::solc::sys_config::SysConfig;
     //     use crate::types::reserved_addresses;
-    //     use cita_types::H256;
+    //     use crate::types::H256;
     //     use rustc_hex::FromHex;
     //     use std::str::FromStr;
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use cita_types::H256;
+use crate::types::H256;
 use jsonrpc_types::rpc_types::{BlockNumber as RpcBlockNumber, BlockTag as RpcBlockTag};
 
 pub type TransactionHash = H256;

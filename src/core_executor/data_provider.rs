@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use crate::core_executor::cita_executive::{call as ext_call, create as ext_create, CreateKind};
+use crate::types::{Address, H256, U256};
 use cita_trie::DB;
-use cita_types::{Address, H256, U256};
 use cita_vm::evm;
 use cita_vm::state::{State, StateObjectInfo};
 use hashbrown::{HashMap, HashSet};

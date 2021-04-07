@@ -13,8 +13,8 @@
 // limitations under the License.
 
 use crate::types::block_number::BlockNumber;
+use crate::types::{H256, H264};
 use bloomchain::group::GroupPosition;
-use cita_types::{H256, H264};
 
 const TRANSACTION_INDEX: u8 = 0;
 const BLOCKRECEIPTS_INDEX: u8 = 1;

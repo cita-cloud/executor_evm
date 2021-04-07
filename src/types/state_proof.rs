@@ -1,5 +1,5 @@
 use super::Bytes;
-use cita_types::{Address, H256};
+use crate::types::{Address, H256};
 use rlp::{self, Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
 
 #[derive(Default, Debug, Clone)]

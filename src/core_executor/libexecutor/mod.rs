@@ -12,14 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pub mod auto_exec;
 pub mod block;
 pub mod call_request;
 pub mod command;
-pub mod economical_model;
 pub mod executor;
 pub mod fsm;
-pub mod lru_cache;
-pub mod sys_config;
 
 pub use libproto::*;

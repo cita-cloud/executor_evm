@@ -14,9 +14,9 @@
 
 use super::Bytes;
 use crate::types::block_number::BlockNumber;
+use crate::types::BloomTools;
+use crate::types::{Address, Bloom, H256};
 use cita_cloud_proto::evm::Log as CloudLog;
-use cita_types::traits::BloomTools;
-use cita_types::{Address, Bloom, H256};
 use jsonrpc_types::rpc_types::Log as RpcLog;
 use libproto::executor::LogEntry as ProtoLog;
 use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
@@ -152,7 +152,7 @@ impl Into<CloudLog> for LocalizedLog {
 #[cfg(test)]
 mod tests {
     use super::{Bloom, Log};
-    use cita_types::{Address, H256};
+    use crate::types::{Address, H256};
 
     #[test]
     fn test_address_log_bloom() {

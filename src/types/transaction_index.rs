@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // FixMe: Rewrite
-use cita_types::H256;
+use crate::types::H256;
 use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
 
 #[derive(Debug)]

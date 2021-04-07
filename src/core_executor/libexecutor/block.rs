@@ -18,23 +18,19 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-use crate::core_chain::context::{Context, LastHashes};
 use crate::core_executor::cita_executive::CitaExecutive;
 use crate::core_executor::data_provider::BlockDataProvider;
 use crate::core_executor::exception::ExecutedException;
-use crate::core_executor::libexecutor::auto_exec::auto_exec;
-use crate::core_executor::libexecutor::economical_model::EconomicalModel;
 use crate::core_executor::libexecutor::executor::CitaTrieDB;
-use crate::core_executor::libexecutor::sys_config::BlockSysConfig;
-use crate::core_executor::libexecutor::sys_config::GlobalSysConfig;
 use crate::core_executor::tx_gas_schedule::TxGasSchedule;
 pub use crate::types::block::{Block, BlockBody, OpenBlock};
+use crate::types::context::{Context, LastHashes};
 use crate::types::errors::Error;
 use crate::types::errors::ReceiptError;
 use crate::types::errors::{AuthenticationError, ExecutionError};
 use crate::types::receipt::Receipt;
 use crate::types::transaction::SignedTransaction;
-use cita_types::{Address, Bloom as LogBloom, H256, U256};
+use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_vm::{
     evm::Error as EVMError, state::State as CitaState, state::StateObjectInfo, Error as VMError,
 };
@@ -77,7 +73,6 @@ impl DerefMut for ExecutedBlock {
 impl ExecutedBlock {
     #[allow(clippy::too_many_arguments)]
     pub fn create(
-        conf: &BlockSysConfig,
         block: OpenBlock,
         trie_db: Arc<CitaTrieDB>,
         state_root: H256,
@@ -94,14 +89,8 @@ impl ExecutedBlock {
             state,
             state_root,
             last_hashes,
-            account_gas_limit: conf.account_quota_limit.common_quota_limit.into(),
-            account_gas: conf.account_quota_limit.specific_quota_limit.iter().fold(
-                HashMap::new(),
-                |mut acc, (key, value)| {
-                    acc.insert(*key, (*value).into());
-                    acc
-                },
-            ),
+            account_gas_limit: 4_294_967_296u64.into(),
+            account_gas: HashMap::new(),
             current_quota_used: Default::default(),
             receipts: Default::default(),
             eth_compatibility,
@@ -132,12 +121,8 @@ impl ExecutedBlock {
         }
     }
 
-    pub fn apply_transaction(&mut self, t: &SignedTransaction, sys_config: &GlobalSysConfig) {
+    pub fn apply_transaction(&mut self, t: &SignedTransaction) {
         let mut context = self.get_context();
-        context.block_quota_limit = U256::from(sys_config.block_quota_limit);
-        trace!("block quota limit is {:?}", context.block_quota_limit);
-
-        let conf = sys_config.block_sys_config.clone();
         self.account_gas
             .entry(*t.sender())
             .or_insert(self.account_gas_limit);
@@ -148,158 +133,132 @@ impl ExecutedBlock {
             .get(t.sender())
             .expect("account should exist in account_gas_limit");
 
-        // Reset coin_base
-        if conf.check_options.fee_back_platform {
-            // Set coin_base to chain_owner if check_fee_back_platform is true, and chain_owner is set.
-            if conf.chain_owner != Address::from(0) {
-                context.coin_base = conf.chain_owner;
-            }
-        }
         let block_data_provider = EVMBlockDataProvider::new(context.clone());
 
-        let tx_quota_used = match CitaExecutive::new(
-            Arc::new(block_data_provider),
-            self.state.clone(),
-            &context,
-            conf.economical_model,
-        )
-        .exec(t, &conf)
-        {
-            Ok(ret) => {
-                // Note: ret.quota_used was a current transaction quota used.
-                // FIXME: hasn't handle some errors
-                let receipt_error = ret.exception.map(|error| -> ReceiptError {
-                    match error {
-                        ExecutedException::VM(VMError::Evm(EVMError::OutOfGas)) => {
-                            ReceiptError::OutOfQuota
+        let _tx_quota_used =
+            match CitaExecutive::new(Arc::new(block_data_provider), self.state.clone(), &context)
+                .exec(t)
+            {
+                Ok(ret) => {
+                    // Note: ret.quota_used was a current transaction quota used.
+                    // FIXME: hasn't handle some errors
+                    let receipt_error = ret.exception.map(|error| -> ReceiptError {
+                        match error {
+                            ExecutedException::VM(VMError::Evm(EVMError::OutOfGas)) => {
+                                ReceiptError::OutOfQuota
+                            }
+                            ExecutedException::VM(VMError::Evm(
+                                EVMError::InvalidJumpDestination,
+                            )) => ReceiptError::BadJumpDestination,
+                            ExecutedException::VM(VMError::Evm(EVMError::InvalidOpcode)) => {
+                                ReceiptError::BadInstruction
+                            }
+                            ExecutedException::VM(VMError::Evm(EVMError::OutOfStack)) => {
+                                ReceiptError::OutOfStack
+                            }
+                            ExecutedException::VM(VMError::Evm(
+                                EVMError::MutableCallInStaticContext,
+                            )) => ReceiptError::MutableCallInStaticContext,
+                            ExecutedException::VM(VMError::Evm(EVMError::StackUnderflow)) => {
+                                ReceiptError::StackUnderflow
+                            }
+                            ExecutedException::VM(VMError::Evm(EVMError::OutOfBounds)) => {
+                                ReceiptError::OutOfBounds
+                            }
+                            ExecutedException::Reverted => ReceiptError::Reverted,
+                            _ => ReceiptError::Internal,
                         }
-                        ExecutedException::VM(VMError::Evm(EVMError::InvalidJumpDestination)) => {
-                            ReceiptError::BadJumpDestination
-                        }
-                        ExecutedException::VM(VMError::Evm(EVMError::InvalidOpcode)) => {
-                            ReceiptError::BadInstruction
-                        }
-                        ExecutedException::VM(VMError::Evm(EVMError::OutOfStack)) => {
-                            ReceiptError::OutOfStack
-                        }
-                        ExecutedException::VM(VMError::Evm(
-                            EVMError::MutableCallInStaticContext,
-                        )) => ReceiptError::MutableCallInStaticContext,
-                        ExecutedException::VM(VMError::Evm(EVMError::StackUnderflow)) => {
-                            ReceiptError::StackUnderflow
-                        }
-                        ExecutedException::VM(VMError::Evm(EVMError::OutOfBounds)) => {
-                            ReceiptError::OutOfBounds
-                        }
-                        ExecutedException::Reverted => ReceiptError::Reverted,
-                        _ => ReceiptError::Internal,
-                    }
-                });
+                    });
 
-                let tx_quota_used = if receipt_error.is_some()
-                    && receipt_error != Some(ReceiptError::Internal)
-                    && receipt_error != Some(ReceiptError::Reverted)
-                {
-                    t.gas
-                } else {
-                    ret.quota_used
-                };
+                    let tx_quota_used = if receipt_error.is_some()
+                        && receipt_error != Some(ReceiptError::Internal)
+                        && receipt_error != Some(ReceiptError::Reverted)
+                    {
+                        t.gas
+                    } else {
+                        ret.quota_used
+                    };
 
-                // Note: quota_used in Receipt is self.current_quota_used, this will be
-                // handled by get_rich_receipt() while getting a single transaction receipt.
-                let cumulative_quota_used = context.quota_used + tx_quota_used;
-                let receipt = Receipt::new(
-                    None,
-                    cumulative_quota_used,
-                    ret.logs,
-                    receipt_error,
-                    ret.account_nonce,
-                    t.get_transaction_hash(),
-                );
-
-                self.receipts.push(receipt);
-                // return ret.quota_used rather than tx_quota_used for compatibility
-                ret.quota_used
-            }
-            Err(err) => {
-                // FIXME: hasn't handle some errors.
-                let receipt_error = match err {
-                    ExecutionError::NotEnoughBaseGas => Some(ReceiptError::NotEnoughBaseQuota),
-                    // FIXME: need to handle this two situation.
-                    ExecutionError::BlockQuotaLimitReached => {
-                        Some(ReceiptError::BlockQuotaLimitReached)
-                    }
-                    ExecutionError::AccountQuotaLimitReached => {
-                        Some(ReceiptError::AccountQuotaLimitReached)
-                    }
-                    ExecutionError::InvalidNonce => Some(ReceiptError::InvalidNonce),
-                    ExecutionError::NotEnoughBalance => Some(ReceiptError::NotEnoughCash),
-                    ExecutionError::Authentication(
-                        AuthenticationError::NoTransactionPermission,
-                    ) => Some(ReceiptError::NoTransactionPermission),
-                    ExecutionError::Authentication(AuthenticationError::NoContractPermission) => {
-                        Some(ReceiptError::NoContractPermission)
-                    }
-                    ExecutionError::Authentication(AuthenticationError::NoCallPermission) => {
-                        Some(ReceiptError::NoCallPermission)
-                    }
-                    ExecutionError::Internal { .. } => Some(ReceiptError::ExecutionInternal),
-                    ExecutionError::InvalidTransaction => Some(ReceiptError::TransactionMalformed),
-                    _ => Some(ReceiptError::Internal),
-                };
-
-                let schedule = TxGasSchedule::default();
-                // Bellow has a error, need gas*price before compare with balance
-                let tx_quota_used = match err {
-                    ExecutionError::Internal(_) => t.gas,
-                    _ => cmp::min(
-                        self.state
-                            .borrow_mut()
-                            .balance(t.sender())
-                            .unwrap_or_else(|_| U256::from(0)),
-                        U256::from(schedule.tx_gas),
-                    ),
-                };
-
-                if conf.economical_model == EconomicalModel::Charge {
-                    // When charge model, set the min(account.balance,gas_used)
-                    let _ = self.deal_err_quota_cost(
-                        t.sender(),
-                        &context.coin_base,
-                        tx_quota_used,
-                        t.gas_price(),
+                    // Note: quota_used in Receipt is self.current_quota_used, this will be
+                    // handled by get_rich_receipt() while getting a single transaction receipt.
+                    let cumulative_quota_used = context.quota_used + tx_quota_used;
+                    let receipt = Receipt::new(
+                        None,
+                        cumulative_quota_used,
+                        ret.logs,
+                        receipt_error,
+                        ret.account_nonce,
+                        t.get_transaction_hash(),
                     );
+
+                    self.receipts.push(receipt);
+                    // return ret.quota_used rather than tx_quota_used for compatibility
+                    ret.quota_used
                 }
+                Err(err) => {
+                    // FIXME: hasn't handle some errors.
+                    let receipt_error = match err {
+                        ExecutionError::NotEnoughBaseGas => Some(ReceiptError::NotEnoughBaseQuota),
+                        // FIXME: need to handle this two situation.
+                        ExecutionError::BlockQuotaLimitReached => {
+                            Some(ReceiptError::BlockQuotaLimitReached)
+                        }
+                        ExecutionError::AccountQuotaLimitReached => {
+                            Some(ReceiptError::AccountQuotaLimitReached)
+                        }
+                        ExecutionError::InvalidNonce => Some(ReceiptError::InvalidNonce),
+                        ExecutionError::NotEnoughBalance => Some(ReceiptError::NotEnoughCash),
+                        ExecutionError::Authentication(
+                            AuthenticationError::NoTransactionPermission,
+                        ) => Some(ReceiptError::NoTransactionPermission),
+                        ExecutionError::Authentication(
+                            AuthenticationError::NoContractPermission,
+                        ) => Some(ReceiptError::NoContractPermission),
+                        ExecutionError::Authentication(AuthenticationError::NoCallPermission) => {
+                            Some(ReceiptError::NoCallPermission)
+                        }
+                        ExecutionError::Internal { .. } => Some(ReceiptError::ExecutionInternal),
+                        ExecutionError::InvalidTransaction => {
+                            Some(ReceiptError::TransactionMalformed)
+                        }
+                        _ => Some(ReceiptError::Internal),
+                    };
 
-                let cumulative_quota_used = context.quota_used + tx_quota_used;
-                trace!(
-                    "context quota used: {:?}, tx quota used： {:?}",
-                    context.quota_used,
+                    let schedule = TxGasSchedule::default();
+                    // Bellow has a error, need gas*price before compare with balance
+                    let tx_quota_used = match err {
+                        ExecutionError::Internal(_) => t.gas,
+                        _ => cmp::min(
+                            self.state
+                                .borrow_mut()
+                                .balance(t.sender())
+                                .unwrap_or_else(|_| U256::from(0)),
+                            U256::from(schedule.tx_gas),
+                        ),
+                    };
+
+                    let cumulative_quota_used = context.quota_used + tx_quota_used;
+                    trace!(
+                        "context quota used: {:?}, tx quota used： {:?}",
+                        context.quota_used,
+                        tx_quota_used
+                    );
+                    let receipt = Receipt::new(
+                        None,
+                        cumulative_quota_used,
+                        Vec::new(),
+                        receipt_error,
+                        0.into(),
+                        t.get_transaction_hash(),
+                    );
+
+                    self.receipts.push(receipt);
                     tx_quota_used
-                );
-                let receipt = Receipt::new(
-                    None,
-                    cumulative_quota_used,
-                    Vec::new(),
-                    receipt_error,
-                    0.into(),
-                    t.get_transaction_hash(),
-                );
-
-                self.receipts.push(receipt);
-                tx_quota_used
-            }
-        };
-
-        // Note: current_quota_used: Whole quota used for the ExecutedBlock.
-        self.current_quota_used += tx_quota_used;
-        if conf.check_options.quota {
-            if let Some(value) = self.account_gas.get_mut(t.sender()) {
-                *value -= tx_quota_used;
-            }
-        }
+                }
+            };
     }
 
+    #[allow(dead_code)]
     fn deal_err_quota_cost(
         &self,
         sender: &Address,
@@ -333,21 +292,7 @@ impl ExecutedBlock {
     }
 
     /// Turn this into a `ClosedBlock`.
-    pub fn close(self, conf: &BlockSysConfig) -> ClosedBlock {
-        let mut context = self.get_context();
-        // In protocol version 0, 1:
-        // Auto Execution's env info author is default address
-        // In protocol version > 1:
-        // Auto Execution's env info author is block author
-        if conf.chain_version < 2 {
-            context.coin_base = Address::default();
-        }
-
-        if conf.auto_exec {
-            auto_exec(Arc::clone(&self.state), conf.auto_exec_quota_limit, context);
-            self.state.borrow_mut().commit().expect("commit trie error");
-        }
-
+    pub fn close(self) -> ClosedBlock {
         // Rebuild block
         let mut block = Block::new(self.block);
         let state_root = self.state.borrow().root;
@@ -488,10 +433,8 @@ impl BlockDataProvider for EVMBlockDataProvider {
             let index = self.context.block_number - number.low_u64() - 1;
             assert!(
                 index < self.context.last_hashes.len() as u64,
-                format!(
-                    "Inconsistent context, should contain at least {:?} last hashes",
-                    index + 1
-                )
+                "Inconsistent context, should contain at least {:?} last hashes",
+                index + 1
             );
             let r = self.context.last_hashes[index as usize];
             trace!(

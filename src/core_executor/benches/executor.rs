@@ -17,8 +17,8 @@ use crate::core_executor::libexecutor::command::Commander;
 use crate::core_executor::libexecutor::executor::Executor;
 use crate::core_executor::libexecutor::fsm::FSM;
 use crate::tests::helpers;
+use crate::types::Address;
 use cita_crypto::{CreateKey, KeyPair};
-use cita_types::Address;
 use test::Bencher;
 
 fn generate_block(executor: &Executor, txs: u32) -> OpenBlock {

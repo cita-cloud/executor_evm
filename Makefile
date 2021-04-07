@@ -1,6 +1,6 @@
-CARGO=RUSTFLAGS='-A deprecated -Clink-arg=-Wl,--allow-multiple-definition' cargo
+CARGO=RUSTFLAGS='-D warnings -A deprecated -Clink-arg=-Wl,--allow-multiple-definition' cargo
 
-.PHONY: debug release test test-release bench fmt cov clean clippy security_audit
+.PHONY: debug release test test-release bench fmt clean clippy
 
 debug:
 	$(CARGO) build --all
@@ -28,19 +28,9 @@ bench:
 fmt:
 	cargo fmt --all -- --check
 
-cov:
-	cargo cov test --all
-	cargo cov report --open
-
-
 clean:
 	rm -rf target/debug/
 	rm -rf target/release/
 
 clippy:
 	$(CARGO) clippy --all
-
-# use cargo-audit to audit Cargo.lock for crates with security vulnerabilities
-# expecting to see "Success No vulnerable packages found"
-security_audit:
-	scripts/security_audit.sh

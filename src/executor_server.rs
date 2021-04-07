@@ -3,6 +3,7 @@ use crate::core_executor::libexecutor::ExecutedResult;
 use crate::types::block::OpenBlock;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::Bytes;
+use crate::types::{Address, H256};
 use cita_cloud_proto::blockchain::CompactBlock as CloudCompactBlock;
 use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
 use cita_cloud_proto::controller::raw_transaction::Tx as CloudTx;
@@ -15,7 +16,6 @@ use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
-use cita_types::{Address, H256};
 use crossbeam_channel::{Receiver, Sender};
 use prost::Message;
 use std::path::Path;

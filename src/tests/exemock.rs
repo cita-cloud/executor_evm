@@ -14,7 +14,7 @@
 
 use std::collections::BTreeMap;
 
-use cita_types::{Address, H256, U256};
+use crate::types::{Address, H256, U256};
 pub use cita_vm::evm::{
     common, Context, DataProvider, Error, Interpreter, InterpreterConf, InterpreterParams,
     InterpreterResult, OpCode,

@@ -33,9 +33,9 @@ use crate::core_executor::libexecutor::executor::Executor;
 use crate::types::header::OpenHeader;
 use crate::types::transaction::SignedTransaction;
 
+use crate::types::LowerHex;
+use crate::types::{Address, U256};
 use cita_crypto::PrivKey;
-use cita_types::traits::LowerHex;
-use cita_types::{Address, U256};
 use cita_vm::{state::MemoryDB, state::State};
 use crossbeam_channel::{Receiver, Sender};
 use libproto::blockchain;

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::types::Address;
 use crate::types::Bytes;
 use cita_cloud_proto::executor::CallRequest as CloudCallRequest;
-use cita_types::Address;
 use libproto::request::Call;
 
 /// Call request

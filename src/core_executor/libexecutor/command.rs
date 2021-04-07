@@ -14,7 +14,7 @@
 
 use super::executor::CitaTrieDB;
 use super::executor::Executor;
-use crate::core_chain::libchain::chain::Chain;
+use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
@@ -27,9 +27,9 @@ use crate::types::errors::ExecutionError;
 use crate::types::receipt::RichReceipt;
 use crate::types::transaction::{Action, SignedTransaction, Transaction};
 use crate::types::Bytes;
+use crate::types::{Address, H256, U256};
 pub use byteorder::{BigEndian, ByteOrder};
 use cita_database::RocksDB;
-use cita_types::{Address, H256, U256};
 use cita_vm::state::{State as CitaState, StateObjectInfo};
 use crossbeam_channel::{Receiver, Sender};
 use libproto::{ConsensusConfig, ExecutedResult};
@@ -357,7 +357,7 @@ impl Commander for Executor {
     fn call(&self, t: &SignedTransaction, block_tag: BlockTag) -> Result<CitaExecuted, CallError> {
         let header = self.block_header(block_tag).ok_or(CallError::StatePruned)?;
         let last_hashes = self.build_last_hashes(Some(header.hash().unwrap()), header.number());
-        let mut context = Context {
+        let context = Context {
             block_number: header.number(),
             coin_base: *header.proposer(),
             timestamp: if self.eth_compatibility {

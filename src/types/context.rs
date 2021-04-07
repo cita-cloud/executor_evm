@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use crate::types::header::BlockNumber;
-use cita_types::{Address, H256, U256};
+use crate::types::{Address, H256, U256};
 use cita_vm::evm::Context as EVMContext;
 use std::sync::Arc;
 
@@ -62,7 +62,7 @@ impl From<EVMContext> for Context {
 #[cfg(test)]
 mod tests {
     use super::Context;
-    use cita_types::U256;
+    use crate::types::U256;
 
     #[test]
     fn test_default() {

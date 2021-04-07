@@ -16,8 +16,8 @@ use crate::types::block_number::BlockTag;
 #[cfg(test)]
 use crate::types::block_number::Tag;
 use crate::types::log::Log;
-use cita_types::traits::BloomTools;
-use cita_types::{Address, Bloom, H256};
+use crate::types::BloomTools;
+use crate::types::{Address, Bloom, H256};
 use jsonrpc_types::rpc_types::{Filter as RpcFilter, FilterAddress, Topic, VariadicValue};
 
 /// Address Filter.
@@ -208,7 +208,7 @@ impl From<RpcFilter> for Filter {
 mod tests {
     use crate::types::filter::{AddressFilter, Filter, TopicFilter};
     use crate::types::log::Log;
-    use cita_types::{Address, Bloom, H256};
+    use crate::types::{Address, Bloom, H256};
 
     #[test]
     fn test_zip_blooms_none() {

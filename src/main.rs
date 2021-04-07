@@ -24,7 +24,6 @@ extern crate lazy_static;
 extern crate serde_json;
 #[macro_use]
 extern crate crossbeam_channel;
-#[macro_use]
 extern crate libproto;
 
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;

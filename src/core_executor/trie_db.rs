@@ -14,9 +14,9 @@
 
 use std::sync::Arc;
 
+use crate::types::H256;
 use cita_database::error::DatabaseError;
 use cita_database::{DataCategory, Database};
-use cita_types::H256;
 use hashable::HASH_NULL_RLP;
 use parking_lot::RwLock;
 use std::collections::HashMap;

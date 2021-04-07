@@ -17,6 +17,5 @@ pub mod call_request;
 pub mod command;
 pub mod executor;
 pub mod fsm;
-pub mod lru_cache;
 
 pub use libproto::*;

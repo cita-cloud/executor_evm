@@ -126,8 +126,8 @@ mod tests {
         create_block, generate_block_body, generate_block_header, generate_contract, init_executor,
         init_executor2,
     };
+    use crate::types::Address;
     use cita_crypto::{CreateKey, KeyPair};
-    use cita_types::Address;
     use std::thread;
     use std::time::Duration;
 

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::types::Bloom as LogBloom;
 use bloomchain::group::BloomGroup;
 use bloomchain::Bloom;
-use cita_types::Bloom as LogBloom;
 use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
 
 #[derive(Debug, Clone)]

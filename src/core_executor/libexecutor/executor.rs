@@ -12,17 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use crate::core_chain::context::LastHashes;
-use crate::core_chain::libchain::chain::Chain;
+use crate::core_chain::Chain;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::trie_db::TrieDB;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::db_indexes;
 use crate::types::db_indexes::DBIndex;
 use crate::types::header::*;
+use crate::types::H256;
 pub use byteorder::{BigEndian, ByteOrder};
 use cita_database::{Config, DataCategory, Database, RocksDB, NUM_COLUMNS};
-use cita_types::H256;
 use libproto::{ConsensusConfig, ExecutedResult};
 use rlp::{decode, encode};
 use std::convert::Into;
@@ -31,6 +30,8 @@ use util::RwLock;
 
 pub type CitaTrieDB = TrieDB<RocksDB>;
 pub type CitaDB = RocksDB;
+
+pub type LastHashes = Vec<H256>;
 
 pub struct Executor {
     pub current_header: RwLock<Header>,
@@ -346,8 +347,8 @@ mod tests {
     use crate::core_executor::libexecutor::fsm::FSM;
     use crate::tests::helpers;
     use crate::types::block_number::{BlockTag, Tag};
+    use crate::types::Address;
     use cita_crypto::{CreateKey, KeyPair};
-    use cita_types::Address;
     use std::thread;
     use std::time::Duration;
 
@@ -356,7 +357,7 @@ mod tests {
     // fn test_chain_name_valid_block_number() {
     //     use crate::core_executor::contracts::solc::sys_config::SysConfig;
     //     use crate::types::reserved_addresses;
-    //     use cita_types::H256;
+    //     use crate::types::H256;
     //     use rustc_hex::FromHex;
     //     use std::str::FromStr;
 

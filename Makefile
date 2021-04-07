@@ -1,4 +1,4 @@
-CARGO=RUSTFLAGS='-A deprecated -Clink-arg=-Wl,--allow-multiple-definition' cargo
+CARGO=RUSTFLAGS='-D warnings -A deprecated -Clink-arg=-Wl,--allow-multiple-definition' cargo
 
 .PHONY: debug release test test-release bench fmt clean clippy
 

@@ -18,19 +18,19 @@ use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 
-use crate::core_chain::context::{Context, LastHashes};
 use crate::core_executor::cita_executive::CitaExecutive;
 use crate::core_executor::data_provider::BlockDataProvider;
 use crate::core_executor::exception::ExecutedException;
 use crate::core_executor::libexecutor::executor::CitaTrieDB;
 use crate::core_executor::tx_gas_schedule::TxGasSchedule;
 pub use crate::types::block::{Block, BlockBody, OpenBlock};
+use crate::types::context::{Context, LastHashes};
 use crate::types::errors::Error;
 use crate::types::errors::ReceiptError;
 use crate::types::errors::{AuthenticationError, ExecutionError};
 use crate::types::receipt::Receipt;
 use crate::types::transaction::SignedTransaction;
-use cita_types::{Address, Bloom as LogBloom, H256, U256};
+use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_vm::{
     evm::Error as EVMError, state::State as CitaState, state::StateObjectInfo, Error as VMError,
 };
@@ -258,6 +258,7 @@ impl ExecutedBlock {
             };
     }
 
+    #[allow(dead_code)]
     fn deal_err_quota_cost(
         &self,
         sender: &Address,

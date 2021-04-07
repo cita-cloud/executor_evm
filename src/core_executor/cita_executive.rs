@@ -14,8 +14,8 @@
 
 use crate::core_executor::data_provider::{BlockDataProvider, Store as VMSubState};
 use crate::types::Bytes;
+use crate::types::{Address, H160, H256, U256, U512};
 use cita_trie::DB;
-use cita_types::{Address, H160, H256, U256, U512};
 use cita_vm::{
     evm::{
         self, Context as EVMContext, Contract, InterpreterParams, InterpreterResult, Log as EVMLog,
@@ -638,7 +638,7 @@ impl Default for ExecutiveParams {
     fn default() -> ExecutiveParams {
         ExecutiveParams {
             code_address: None,
-            sender: Address::new(),
+            sender: Address::zero(),
             to_address: None,
             gas: U256::zero(),
             gas_price: U256::zero(),
@@ -779,8 +779,8 @@ mod tests {
     use crate::tests::helpers::*;
     use crate::types::transaction::Action;
     use crate::types::transaction::Transaction;
+    use crate::types::{Address, H256, U256};
     use cita_crypto::{CreateKey, KeyPair};
-    use cita_types::{Address, H256, U256};
     use cita_vm::state::StateObjectInfo;
     use rustc_hex::FromHex;
     use std::cell::RefCell;

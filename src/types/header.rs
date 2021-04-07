@@ -14,12 +14,11 @@
 
 //! Block header.
 
-use cita_types::{Address, Bloom, H256, U256};
+use crate::types::{Address, Bloom, H256, U256};
 use libproto::blockchain::{
     Block as ProtoBlock, BlockHeader as ProtoBlockHeader, Proof as ProtoProof, ProofType,
 };
 use libproto::executor::{ExecutedHeader, ExecutedInfo};
-use proof::BftProof;
 use rlp::{self, Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
 use std::cmp;
 use std::ops::{Deref, DerefMut};
@@ -448,32 +447,6 @@ impl Header {
     /// Recover a header from rlp bytes.
     pub fn from_bytes(bytes: &[u8]) -> Self {
         rlp::decode(bytes)
-    }
-
-    /// Verify if a header is the next header, used by cross chain
-    pub fn verify_next(&self, next: &Header, authorities: &[Address]) -> bool {
-        // Calculate block header hash, and is should be same as the parent_hash in next header
-        if self.number() + 1 != next.number() {
-            warn!("verify next block header block number failed");
-            return false;
-        }
-        if self.hash().unwrap() != *next.parent_hash() {
-            warn!("verify next block header parent hash failed");
-            return false;
-        };
-
-        // Verify block header, use proof.proposal
-        let next_proof = BftProof::from(next.proof().clone());
-        if self.number() != 0 && self.proposal_protobuf().crypt_hash() != next_proof.proposal {
-            warn!("verify next block header proposal failed");
-            return false;
-        };
-        // Verify signatures in proposal proof.
-        if !next_proof.check(self.number() as usize, authorities) {
-            warn!("verify signatures for next block header failed");
-            return false;
-        };
-        true
     }
 }
 

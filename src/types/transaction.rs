@@ -14,13 +14,12 @@
 
 use super::Bytes;
 use crate::types::block_number::BlockNumber;
-use crate::types::reserved_addresses::{ABI_ADDRESS, AMEND_ADDRESS, STORE_ADDRESS};
+use crate::types::LowerHex;
+use crate::types::{clean_0x, Address, H256, U256};
 use cita_cloud_proto::blockchain::UnverifiedTransaction as CloudUnverifiedTransaction;
 use cita_crypto::{
     pubkey_to_address, PubKey, Signature, HASH_BYTES_LEN, PUBKEY_BYTES_LEN, SIGNATURE_BYTES_LEN,
 };
-use cita_types::traits::LowerHex;
-use cita_types::{clean_0x, Address, H256, U256};
 use libproto::blockchain::{
     Crypto as ProtoCrypto, SignedTransaction as ProtoSignedTransaction,
     Transaction as ProtoTransaction, UnverifiedTransaction as ProtoUnverifiedTransaction,
@@ -28,6 +27,9 @@ use libproto::blockchain::{
 use rlp::*;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+pub const STORE_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010000";
+pub const ABI_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010001";
+pub const AMEND_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010002";
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Error {

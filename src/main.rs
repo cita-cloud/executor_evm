@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let eth_compatibility = opts.is_present("compatibility");
 
         info!("grpc port of this service: {}", grpc_port);
-        let executor_addr = format!("127.0.0.1:{}", grpc_port).parse()?;
+        let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
         let data_path = String::from("./data");
         let mut executor = Executor::init(data_path, eth_compatibility);

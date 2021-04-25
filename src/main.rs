@@ -82,7 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .get_matches();
 
     let stdout = matches.is_present("stdout");
-    micro_service_init!("citacloud-executor", "CITA-CLOUD:executor", stdout);
+    micro_service_init!("executor-service", "CITA-CLOUD:executor", stdout);
 
     if let Some(_args) = matches.subcommand_matches("git") {
         info!("git version: {}", GIT_VERSION);

@@ -10,7 +10,8 @@ use cita_cloud_proto::controller::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::controller::RawTransaction as CloudRawTransaction;
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
-    Balance as CloudBalance, ByteCode as CloudByteCode, Receipt as CloudReceipt,
+    Balance as CloudBalance, ByteCode as CloudByteCode, Nonce as CloudNonce,
+    Receipt as CloudReceipt,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -109,7 +110,7 @@ impl RpcService for ExecutorServer {
             Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => {
                 Ok(Response::new(rich_receipt.into()))
             }
-            _ => Err(Status::new(Code::NotFound, "Not get the receipt")),
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the receipt")),
         }
     }
 
@@ -117,9 +118,9 @@ impl RpcService for ExecutorServer {
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteCode>, Status> {
-        let cloud_addres = request.into_inner();
+        let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::CodeAt(
-            Address::from(cloud_addres.address.as_slice()),
+            Address::from(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -127,7 +128,7 @@ impl RpcService for ExecutorServer {
             Ok(CommandResp::CodeAt(Some(byte_code))) => {
                 Ok(Response::new(CloudByteCode { byte_code }))
             }
-            _ => Err(Status::new(Code::NotFound, "Not get the bytecode")),
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the bytecode")),
         }
     }
 
@@ -135,15 +136,35 @@ impl RpcService for ExecutorServer {
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudBalance>, Status> {
-        let cloud_addres = request.into_inner();
+        let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::BalanceAt(
-            Address::from(cloud_addres.address.as_slice()),
+            Address::from(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
         match self.command_resp_receiver.recv() {
             Ok(CommandResp::BalanceAt(Some(value))) => Ok(Response::new(CloudBalance { value })),
-            _ => Err(Status::new(Code::NotFound, "Not get the balance")),
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the balance")),
+        }
+    }
+
+    async fn get_transaction_count(
+        &self,
+        request: Request<CloudAddress>,
+    ) -> Result<Response<CloudNonce>, Status> {
+        let cloud_address = request.into_inner();
+        let _ = self.command_req_sender.send(Command::NonceAt(
+            Address::from(cloud_address.address.as_slice()),
+            BlockTag::Tag(Tag::Pending),
+        ));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::NonceAt(Some(value))) => {
+                let mut nonce = vec![0; 32];
+                value.to_big_endian(&mut nonce);
+                Ok(Response::new(CloudNonce { nonce }))
+            }
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the nonce")),
         }
     }
 }

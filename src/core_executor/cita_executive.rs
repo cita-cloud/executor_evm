@@ -239,6 +239,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                     "Get data after executed the transaction [Revert]: {:?}",
                     output
                 );
+                finalize_result.output = output;
             }
             Ok(InterpreterResult::Create(output, gas_left, logs, addr)) => {
                 let refund = get_refund(store.clone(), sender, gas_limit.as_u64(), gas_left);
@@ -474,7 +475,6 @@ pub fn call<B: DB + 'static>(
         store_son.clone(),
         request,
     );
-    debug!("call result={:?}", r);
     match r {
         Ok(evm::InterpreterResult::Normal(output, gas_left, logs)) => {
             state_provider.borrow_mut().discard_checkpoint();

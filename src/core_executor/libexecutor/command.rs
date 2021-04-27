@@ -16,6 +16,7 @@ use super::executor::CitaTrieDB;
 use super::executor::Executor;
 use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
+use crate::core_executor::exception::ExecutedException;
 use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
@@ -140,6 +141,20 @@ pub trait Commander {
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt>;
 }
 
+// revert string like this, abi encode string
+// 0x08c379a0
+// 0x0000000000000000000000000000000000000000000000000000000000000020
+// 0x000000000000000000000000000000000000000000000000000000000000000e
+// 0x4e6f7420657175616c207a65726f000000000000000000000000000000000000
+// 4 bytes version + 32 bytes whole len + 32 bytes string's len
+fn parse_reason_string(output: &[u8]) -> Option<String> {
+    if output[..4].to_vec() != vec![0x08, 0xc3, 0x79, 0xa0] {
+        return None;
+    }
+    let bstr = output[68..].split(|x| *x == 0).next()?;
+    String::from_utf8(bstr.to_vec()).ok()
+}
+
 impl Commander for Executor {
     fn operate(&mut self, command: Command) -> CommandResp {
         match command {
@@ -227,10 +242,19 @@ impl Commander for Executor {
 
     fn eth_call(&self, request: CallRequest, id: BlockTag) -> Result<Bytes, String> {
         let signed = self.sign_call(request);
-        let result = self.call(&signed, id);
-        result
-            .map(|b| b.output)
-            .map_err(|e| format!("Call Error {}", e))
+        match self.call(&signed, id) {
+            Ok(b) => {
+                if let Some(e) = b.exception {
+                    if let ExecutedException::Reverted = e {
+                        if let Some(estr) = parse_reason_string(&b.output) {
+                            return Err("Reverted: ".to_owned() + &estr);
+                        }
+                    }
+                }
+                Ok(b.output)
+            }
+            Err(e) => Err(format!("Call Error {}", e)),
+        }
     }
 
     fn estimate_quota(&self, request: CallRequest, id: BlockTag) -> Result<Bytes, String> {

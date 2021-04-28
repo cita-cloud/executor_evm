@@ -26,6 +26,7 @@ extern crate serde_json;
 extern crate crossbeam_channel;
 extern crate libproto;
 
+use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use clap::{App, Arg};
@@ -39,7 +40,6 @@ use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
 use types::block_number::{BlockTag, Tag};
-use util::set_panic_handler;
 // extern crate enum_primitive;
 
 const GIT_VERSION: &str = git_version!(
@@ -50,6 +50,7 @@ const GIT_HOMEPAGE: &str = "https://github.com/cita-cloud/executor_evm";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     ::std::env::set_var("RUST_BACKTRACE", "full");
+    set_panic_handler();
 
     let matches = App::new("CITA-CLOUD EVM EXECUTOR")
         .author("Rivtower Technologies.")
@@ -73,21 +74,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .about("Sets eth compatibility, default false"),
                 ),
         )
-        .arg(
-            Arg::new("stdout")
-                .short('s')
-                .long("stdout")
-                .about("Log to console"),
-        )
         .get_matches();
 
-    let stdout = matches.is_present("stdout");
-    micro_service_init!("executor-service", "CITA-CLOUD:executor", stdout);
-
     if let Some(_args) = matches.subcommand_matches("git") {
-        info!("git version: {}", GIT_VERSION);
-        info!("homepage: {}", GIT_HOMEPAGE);
+        println!("git version: {}", GIT_VERSION);
+        println!("homepage: {}", GIT_HOMEPAGE);
     } else if let Some(opts) = matches.subcommand_matches("run") {
+        log4rs::init_file("executor-log4rs.yaml", Default::default()).unwrap();
         let grpc_port = opts.value_of("port").unwrap_or("50002");
         let eth_compatibility = opts.is_present("compatibility");
 
@@ -172,6 +165,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 pub mod core_chain;
 pub mod core_executor;
 mod executor_server;
+mod panic_hook;
 #[cfg(test)]
 mod tests;
 pub mod types;

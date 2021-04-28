@@ -861,6 +861,7 @@ dependencies = [
 name = "executor"
 version = "0.2.0-alpha.3"
 dependencies = [
+ "backtrace 0.2.3",
  "bincode",
  "bloomchain",
  "byteorder",
@@ -888,6 +889,8 @@ dependencies = [
  "largest-remainder-method",
  "lazy_static 1.4.0",
  "libproto",
+ "log",
+ "log4rs",
  "lru-cache",
  "parking_lot 0.8.0",
  "prost",

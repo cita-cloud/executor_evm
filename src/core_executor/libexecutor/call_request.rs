@@ -49,7 +49,7 @@ impl From<Call> for CallRequest {
 impl From<CloudCallRequest> for CallRequest {
     fn from(call: CloudCallRequest) -> Self {
         CallRequest {
-            from:  if call.from.is_empty() {
+            from: if call.from.is_empty() {
                 None
             } else {
                 Some(Address::from(call.from.as_slice()))

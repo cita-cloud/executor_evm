@@ -121,6 +121,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(call_req_receiver) -> cloud_call_request => {
                     match cloud_call_request {
                         Ok(cloud_call_request) => {
+                            debug!("get call request: {:x?}", cloud_call_request);
                             let call_result = executor.eth_call(CallRequest::from(cloud_call_request), BlockTag::Tag(Tag::Pending));
                             let _ = call_resp_sender.send(call_result);
                         },

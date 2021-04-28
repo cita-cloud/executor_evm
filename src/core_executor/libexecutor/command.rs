@@ -148,6 +148,9 @@ pub trait Commander {
 // 0x4e6f7420657175616c207a65726f000000000000000000000000000000000000
 // 4 bytes version + 32 bytes whole len + 32 bytes string's len
 fn parse_reason_string(output: &[u8]) -> Option<String> {
+    if output.len() <= 68 {
+        return None;
+    }
     if output[..4].to_vec() != vec![0x08, 0xc3, 0x79, 0xa0] {
         return None;
     }

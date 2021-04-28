@@ -40,6 +40,7 @@ impl ExecutorService for ExecutorServer {
         request: Request<CloudCompactBlock>,
     ) -> std::result::Result<Response<CloudHash>, Status> {
         let block = request.into_inner();
+        debug!("get exec request: {:x?}", block.clone());
         let mut open_blcok = OpenBlock::from(block.clone());
         info!("exec method invoke, height: {}", open_blcok.header.number());
 
@@ -74,7 +75,7 @@ impl ExecutorService for ExecutorServer {
                     hash: state_root.to_vec(),
                 }))
             }
-            Err(recv_error) => Err(Status::new(Code::Internal, recv_error.to_string())),
+            Err(recv_error) => Err(Status::new(Code::InvalidArgument, recv_error.to_string())),
         }
     }
 
@@ -88,9 +89,9 @@ impl ExecutorService for ExecutorServer {
         match self.call_resp_receiver.recv() {
             Ok(call_result) => match call_result {
                 Ok(value) => Ok(Response::new(CloudCallResponse { value })),
-                Err(str) => Err(Status::new(Code::Internal, str)),
+                Err(str) => Err(Status::new(Code::InvalidArgument, str)),
             },
-            Err(recv_error) => Err(Status::new(Code::Internal, recv_error.to_string())),
+            Err(recv_error) => Err(Status::new(Code::InvalidArgument, recv_error.to_string())),
         }
     }
 }

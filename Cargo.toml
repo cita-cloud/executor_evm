@@ -14,14 +14,14 @@
 
 [package]
 name = "executor"
-version = "0.2.0-alpha.3"
+version = "5.0.0"
 authors = ["Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2018"
 
 [dependencies]
-log = "*"
-log4rs = { version = "*", features = ["gzip"] }
+log = "0.4.14"
+log4rs = { version = "1.0.0", features = ["default", "gzip"] }
 dotenv = "0.13.0"
 cita-logger = "0.1.1"
 tonic = "0.4"
@@ -55,7 +55,7 @@ tiny-keccak = { version="1.4", optional=true }
 hashbrown = { version = "0.3", features = ["rayon"] }
 hasher = { version="0.1" }
 ethereum-types = "0.4"
-backtrace = "*"
+backtrace = "0.2.3"
 
 cita-merklehash = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 cita-secp256k1 = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
@@ -66,7 +66,7 @@ jsonrpc-types = { git = "https://github.com/citahub/cita-common.git", branch = "
 cita-crypto = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 libproto = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 
-cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto" }
+cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto", branch = "v5.0.0" }
 
 [dependencies.cita-vm]
 git = "https://github.com/citahub/cita-vm.git"

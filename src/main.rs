@@ -81,8 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("homepage: {}", GIT_HOMEPAGE);
     } else if let Some(opts) = matches.subcommand_matches("run") {
         log4rs::init_file("executor-log4rs.yaml", Default::default()).unwrap();
-        let grpc_port = opts.value_of("port").unwrap_or("50002");
-        let eth_compatibility = opts.is_present("compatibility");
+        let grpc_port = opts.value_of("grpc-port").unwrap_or("50002");
+        let eth_compatibility = opts.is_present("eth-compatibility");
 
         info!("grpc port of this service: {}", grpc_port);
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;

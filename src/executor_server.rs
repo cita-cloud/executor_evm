@@ -4,9 +4,9 @@ use crate::types::block::OpenBlock;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::Bytes;
 use crate::types::{Address, H256};
+use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::blockchain::Block as CloudBlock;
 use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
-use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, ByteCode as CloudByteCode, Nonce as CloudNonce,

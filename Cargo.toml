@@ -15,7 +15,7 @@
 [package]
 name = "executor"
 version = "0.2.0-alpha.3"
-authors = ["Rivtower Technologies <contact@rivtower.com>"]
+authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2018"
 
@@ -66,7 +66,7 @@ jsonrpc-types = { git = "https://github.com/citahub/cita-common.git", branch = "
 cita-crypto = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 libproto = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
 
-cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto" }
+cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto", branch = "full_block_develop" }
 
 [dependencies.cita-vm]
 git = "https://github.com/citahub/cita-vm.git"

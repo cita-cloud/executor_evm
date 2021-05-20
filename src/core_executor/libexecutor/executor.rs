@@ -260,7 +260,7 @@ impl Executor {
         for (i, last_hash) in last_hashes
             .iter_mut()
             .enumerate()
-            .take(255 as usize)
+            .take(255_usize)
             .skip(1)
         {
             if i >= parent_height as usize {

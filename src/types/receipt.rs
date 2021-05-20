@@ -291,7 +291,7 @@ impl Into<CloudReceipt> for RichReceipt {
             error_message: self
                 .error
                 .map(ReceiptError::description)
-                .unwrap_or("".to_string()),
+                .unwrap_or_else(|| "".to_string()),
         }
     }
 }

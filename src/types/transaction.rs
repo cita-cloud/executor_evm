@@ -101,21 +101,21 @@ impl Encodable for Action {
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// crypto type.
 pub enum CryptoType {
-    Default,
-    Reserved,
+    DEFAULT,
+    RESERVED,
 }
 
 impl Default for CryptoType {
     fn default() -> CryptoType {
-        CryptoType::Default
+        CryptoType::DEFAULT
     }
 }
 
 impl Decodable for CryptoType {
     fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
         match rlp.as_val::<u8>()? {
-            0 => Ok(CryptoType::Default),
-            1 => Ok(CryptoType::Reserved),
+            0 => Ok(CryptoType::DEFAULT),
+            1 => Ok(CryptoType::RESERVED),
             _ => Err(DecoderError::Custom("Unknown Type.")),
         }
     }
@@ -124,8 +124,8 @@ impl Decodable for CryptoType {
 impl Encodable for CryptoType {
     fn rlp_append(&self, s: &mut RlpStream) {
         match *self {
-            CryptoType::Default => s.append_internal(&(0u8)),
-            CryptoType::Reserved => s.append_internal(&(1u8)),
+            CryptoType::DEFAULT => s.append_internal(&(0u8)),
+            CryptoType::RESERVED => s.append_internal(&(1u8)),
         };
     }
 }
@@ -133,8 +133,8 @@ impl Encodable for CryptoType {
 impl From<ProtoCrypto> for CryptoType {
     fn from(c: ProtoCrypto) -> CryptoType {
         match c {
-            ProtoCrypto::DEFAULT => CryptoType::Default,
-            ProtoCrypto::RESERVED => CryptoType::Reserved,
+            ProtoCrypto::DEFAULT => CryptoType::DEFAULT,
+            ProtoCrypto::RESERVED => CryptoType::RESERVED,
         }
     }
 }
@@ -415,8 +415,8 @@ impl UnverifiedTransaction {
         untx.set_signature(self.signature.to_vec());
 
         match self.crypto_type {
-            CryptoType::Default => untx.set_crypto(ProtoCrypto::DEFAULT),
-            CryptoType::Reserved => untx.set_crypto(ProtoCrypto::RESERVED),
+            CryptoType::DEFAULT => untx.set_crypto(ProtoCrypto::DEFAULT),
+            CryptoType::RESERVED => untx.set_crypto(ProtoCrypto::RESERVED),
         }
         untx
     }
@@ -511,12 +511,10 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
     fn from(ctx: CloudUnverifiedTransaction) -> Self {
         if let Some(raw_tx) = ctx.transaction {
             let action = {
-                match hex::encode(raw_tx.to.as_slice()).as_str() {
-                    "" => Action::Create,
-                    STORE_ADDRESS => Action::Store,
-                    ABI_ADDRESS => Action::AbiStore,
-                    AMEND_ADDRESS => Action::AmendData,
-                    _ => Action::Call(Address::from(raw_tx.to.as_slice())),
+                if raw_tx.to.is_empty() {
+                    Action::Call(Address::from(raw_tx.to.as_slice()))
+                } else {
+                    Action::Create
                 }
             };
             let tx = Transaction {
@@ -533,7 +531,7 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
             let utx = UnverifiedTransaction {
                 unsigned: tx,
                 signature: Signature::default(),
-                crypto_type: CryptoType::Default,
+                crypto_type: CryptoType::DEFAULT,
                 hash: H256::from(ctx.transaction_hash.as_slice()),
             };
             return SignedTransaction {

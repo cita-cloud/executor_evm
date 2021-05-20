@@ -26,7 +26,7 @@ use time::get_time;
 
 use super::Bytes;
 pub use crate::types::block_number::BlockNumber;
-use cita_cloud_proto::blockchain::CompactBlock as CloudCompactBlock;
+use cita_cloud_proto::blockchain::Block as CloudBlock;
 use hashable::{Hashable, HASH_NULL_RLP};
 
 lazy_static! {
@@ -97,7 +97,7 @@ impl OpenHeader {
         }
     }
 
-    pub fn from_cloud_protobuf(block: &CloudCompactBlock) -> Self {
+    pub fn from_cloud_protobuf(block: &CloudBlock) -> Self {
         if let Some(header) = &block.header {
             return OpenHeader {
                 parent_hash: H256::from(header.prevhash.as_slice()),

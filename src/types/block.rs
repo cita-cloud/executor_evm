@@ -18,7 +18,7 @@ use crate::types::transaction_index::TransactionIndex;
 
 use crate::types::H256;
 use cita_cloud_proto::blockchain::{
-    CompactBlock as CloudCompactBlock, UnverifiedTransaction as CloudUnverifiedTransaction,
+    Block as CloudBlock, UnverifiedTransaction as CloudUnverifiedTransaction,
 };
 use libproto::blockchain::{
     Block as ProtoBlock, BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
@@ -45,8 +45,8 @@ impl From<ProtoBlock> for OpenBlock {
     }
 }
 
-impl From<CloudCompactBlock> for OpenBlock {
-    fn from(b: CloudCompactBlock) -> Self {
+impl From<CloudBlock> for OpenBlock {
+    fn from(b: CloudBlock) -> Self {
         let header = OpenHeader::from_cloud_protobuf(&b);
         Self {
             header,

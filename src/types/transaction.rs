@@ -511,10 +511,10 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
     fn from(ctx: CloudUnverifiedTransaction) -> Self {
         if let Some(raw_tx) = ctx.transaction {
             let action = {
-                if raw_tx.to.len() != 0 {
-                    Action::Call(Address::from(raw_tx.to.as_slice()))
-                } else {
+                if raw_tx.to.is_empty() {
                     Action::Create
+                } else {
+                    Action::Call(Address::from(raw_tx.to.as_slice()))
                 }
             };
             let tx = Transaction {

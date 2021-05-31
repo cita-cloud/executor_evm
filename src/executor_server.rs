@@ -54,8 +54,11 @@ impl ExecutorService for ExecutorServer {
 
                 let raw_tx = CloudRawTransaction::decode(&tx_bytes[..]).unwrap();
                 match raw_tx.tx {
-                    Some(CloudTx::NormalTx(utx)) => open_blcok.insert_cloud_tx(utx),
-                    Some(unknown) => info!("block contains unknown tx: `{:?}`", unknown),
+                    Some(CloudTx::NormalTx(utx)) => {
+                        debug!("exec normal_tx hash: {}", hex::encode(utx.transaction_hash.clone()));
+                        open_blcok.insert_cloud_tx(utx);
+                    },
+                    Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
                     None => info!("block contains empty tx"),
                 }
             }

@@ -9,8 +9,8 @@ use cita_cloud_proto::blockchain::Block as CloudBlock;
 use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
-    Balance as CloudBalance, ByteCode as CloudByteCode, Nonce as CloudNonce,
-    Receipt as CloudReceipt,
+    Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
+    Nonce as CloudNonce, Receipt as CloudReceipt,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -155,6 +155,21 @@ impl RpcService for ExecutorServer {
                 Ok(Response::new(CloudNonce { nonce }))
             }
             _ => Err(Status::new(Code::InvalidArgument, "Not get the nonce")),
+        }
+    }
+
+    async fn get_abi(&self, request: Request<CloudAddress>) -> Result<Response<CloudByteAbi>, Status> {
+        let cloud_address = request.into_inner();
+        let _ = self.command_req_sender.send(Command::ABIAt(
+            Address::from(cloud_address.address.as_slice()),
+            BlockTag::Tag(Tag::Pending),
+        ));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::ABIAt(Some(bytes_abi))) => {
+                Ok(Response::new(CloudByteAbi { bytes_abi }))
+            }
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the abi")),
         }
     }
 }

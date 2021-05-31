@@ -43,7 +43,10 @@ impl ExecutorService for ExecutorServer {
         if let Some(body) = block.body {
             for raw_tx in body.body {
                 match raw_tx.tx {
-                    Some(CloudTx::NormalTx(utx)) => open_blcok.insert_cloud_tx(utx),
+                    Some(CloudTx::NormalTx(utx)) => {
+                        debug!("exec normal_tx hash: {}", hex::encode(utx.transaction_hash.clone()));
+                        open_blcok.insert_cloud_tx(utx);
+                    },
                     Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
                     None => info!("block contains empty tx"),
                 }

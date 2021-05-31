@@ -14,10 +14,10 @@
 
 use crate::core_chain::Chain;
 pub use crate::core_executor::libexecutor::block::*;
-use crate::core_executor::trie_db::TrieDB;
+use crate::core_executor::trie_db::TrieDb;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::db_indexes;
-use crate::types::db_indexes::DBIndex;
+use crate::types::db_indexes::DbIndex;
 use crate::types::header::*;
 use crate::types::H256;
 pub use byteorder::{BigEndian, ByteOrder};
@@ -28,14 +28,14 @@ use std::convert::Into;
 use std::sync::Arc;
 use util::RwLock;
 
-pub type CitaTrieDB = TrieDB<RocksDB>;
-pub type CitaDB = RocksDB;
+pub type CitaTrieDb = TrieDb<RocksDB>;
+pub type CitaDb = RocksDB;
 
 pub type LastHashes = Vec<H256>;
 
 pub struct Executor {
     pub current_header: RwLock<Header>,
-    pub state_db: Arc<CitaTrieDB>,
+    pub state_db: Arc<CitaTrieDb>,
     pub db: Arc<dyn Database>,
     pub eth_compatibility: bool,
     pub core_chain: Chain,
@@ -49,7 +49,7 @@ impl Executor {
         let statedb_path = data_path.clone() + "/statedb";
         let rocks_db = RocksDB::open(&statedb_path, &config).unwrap();
         let db = Arc::new(rocks_db);
-        let state_db = Arc::new(TrieDB::new(db.clone()));
+        let state_db = Arc::new(TrieDb::new(db.clone()));
 
         let current_header = match get_current_header(db.clone()) {
             Some(header) => header,
@@ -319,7 +319,7 @@ impl Executor {
     }
 }
 
-pub fn get_current_header(db: Arc<CitaDB>) -> Option<Header> {
+pub fn get_current_header(db: Arc<CitaDb>) -> Option<Header> {
     let current_hash_key = db_indexes::CurrentHash.get_index();
     if let Ok(hash) = db.get(Some(DataCategory::Extra), &current_hash_key.to_vec()) {
         let hash: H256 = if let Some(h) = hash {
@@ -344,7 +344,7 @@ mod tests {
     extern crate tempdir;
     use crate::core_executor::libexecutor::command::Commander;
     use crate::core_executor::libexecutor::command::{Command, CommandResp};
-    use crate::core_executor::libexecutor::fsm::FSM;
+    use crate::core_executor::libexecutor::fsm::Fsm;
     use crate::tests::helpers;
     use crate::types::block_number::{BlockTag, Tag};
     use crate::types::Address;

@@ -14,7 +14,7 @@
 
 use crate::core_executor::cita_executive::create_address_from_address_and_nonce;
 use crate::types::block::{Block, BlockBody, OpenBlock};
-use crate::types::db_indexes::DBIndex;
+use crate::types::db_indexes::DbIndex;
 use crate::types::db_indexes::{
     BlockNumber2Body, BlockNumber2Header, CurrentHash, CurrentHeight, Hash2BlockNumber,
     Hash2BlockReceipts, Hash2TransactionIndex, LogGroupPosition,

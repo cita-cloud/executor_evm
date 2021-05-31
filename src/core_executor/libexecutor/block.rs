@@ -21,7 +21,7 @@ use std::sync::Arc;
 use crate::core_executor::cita_executive::CitaExecutive;
 use crate::core_executor::data_provider::BlockDataProvider;
 use crate::core_executor::exception::ExecutedException;
-use crate::core_executor::libexecutor::executor::CitaTrieDB;
+use crate::core_executor::libexecutor::executor::CitaTrieDb;
 use crate::core_executor::tx_gas_schedule::TxGasSchedule;
 pub use crate::types::block::{Block, BlockBody, OpenBlock};
 use crate::types::context::{Context, LastHashes};
@@ -47,7 +47,7 @@ lazy_static! {
 pub struct ExecutedBlock {
     pub block: OpenBlock,
     pub receipts: Vec<Receipt>,
-    pub state: Arc<RefCell<CitaState<CitaTrieDB>>>,
+    pub state: Arc<RefCell<CitaState<CitaTrieDb>>>,
     pub current_quota_used: U256,
     pub state_root: H256,
     last_hashes: Arc<LastHashes>,
@@ -74,12 +74,12 @@ impl ExecutedBlock {
     #[allow(clippy::too_many_arguments)]
     pub fn create(
         block: OpenBlock,
-        trie_db: Arc<CitaTrieDB>,
+        trie_db: Arc<CitaTrieDb>,
         state_root: H256,
         last_hashes: Arc<LastHashes>,
         eth_compatibility: bool,
     ) -> Result<Self, Error> {
-        let state = CitaState::from_existing(Arc::<CitaTrieDB>::clone(&trie_db), state_root)
+        let state = CitaState::from_existing(Arc::<CitaTrieDb>::clone(&trie_db), state_root)
             .expect("Get state from trie db");
 
         // Need only one state reference for the whole block transaction.
@@ -133,7 +133,7 @@ impl ExecutedBlock {
             .get(t.sender())
             .expect("account should exist in account_gas_limit");
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
 
         let _tx_quota_used =
             match CitaExecutive::new(Arc::new(block_data_provider), self.state.clone(), &context)
@@ -144,25 +144,25 @@ impl ExecutedBlock {
                     // FIXME: hasn't handle some errors
                     let receipt_error = ret.exception.map(|error| -> ReceiptError {
                         match error {
-                            ExecutedException::VM(VMError::Evm(EVMError::OutOfGas)) => {
+                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfGas)) => {
                                 ReceiptError::OutOfQuota
                             }
-                            ExecutedException::VM(VMError::Evm(
+                            ExecutedException::Vm(VMError::Evm(
                                 EVMError::InvalidJumpDestination,
                             )) => ReceiptError::BadJumpDestination,
-                            ExecutedException::VM(VMError::Evm(EVMError::InvalidOpcode)) => {
+                            ExecutedException::Vm(VMError::Evm(EVMError::InvalidOpcode)) => {
                                 ReceiptError::BadInstruction
                             }
-                            ExecutedException::VM(VMError::Evm(EVMError::OutOfStack)) => {
+                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfStack)) => {
                                 ReceiptError::OutOfStack
                             }
-                            ExecutedException::VM(VMError::Evm(
+                            ExecutedException::Vm(VMError::Evm(
                                 EVMError::MutableCallInStaticContext,
                             )) => ReceiptError::MutableCallInStaticContext,
-                            ExecutedException::VM(VMError::Evm(EVMError::StackUnderflow)) => {
+                            ExecutedException::Vm(VMError::Evm(EVMError::StackUnderflow)) => {
                                 ReceiptError::StackUnderflow
                             }
-                            ExecutedException::VM(VMError::Evm(EVMError::OutOfBounds)) => {
+                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfBounds)) => {
                                 ReceiptError::OutOfBounds
                             }
                             ExecutedException::Reverted => ReceiptError::Reverted,
@@ -326,7 +326,7 @@ impl ExecutedBlock {
 
         // Note: It is ok to new a state, because no cache and checkpoint used.
         let mut state = CitaState::from_existing(
-            Arc::<CitaTrieDB>::clone(&self.state.borrow().db),
+            Arc::<CitaTrieDb>::clone(&self.state.borrow().db),
             self.state.borrow().root,
         )
         .expect("Get state from trie db");
@@ -348,7 +348,7 @@ pub struct ClosedBlock {
     /// Protobuf Block
     pub block: Block,
     pub receipts: Vec<Receipt>,
-    pub state: CitaState<CitaTrieDB>,
+    pub state: CitaState<CitaTrieDb>,
 }
 
 impl ClosedBlock {
@@ -414,17 +414,17 @@ impl DerefMut for ClosedBlock {
     }
 }
 
-pub struct EVMBlockDataProvider {
+pub struct EvmBlockDataProvider {
     context: Context,
 }
 
-impl EVMBlockDataProvider {
+impl EvmBlockDataProvider {
     pub fn new(context: Context) -> Self {
-        EVMBlockDataProvider { context }
+        EvmBlockDataProvider { context }
     }
 }
 
-impl BlockDataProvider for EVMBlockDataProvider {
+impl BlockDataProvider for EvmBlockDataProvider {
     fn get_block_hash(&self, number: &U256) -> H256 {
         // TODO: comment out what this function expects from context, since it will produce panics if the latter is inconsistent
         if *number < U256::from(self.context.block_number)

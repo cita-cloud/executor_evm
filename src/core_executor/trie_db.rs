@@ -24,7 +24,7 @@ use std::collections::HashMap;
 static NULL_RLP_STATIC: [u8; 1] = [0x80; 1];
 
 #[derive(Debug)]
-pub struct TrieDB<DB>
+pub struct TrieDb<DB>
 where
     DB: Database,
 {
@@ -32,12 +32,12 @@ where
     cache: Arc<RwLock<HashMap<Vec<u8>, Vec<u8>>>>,
 }
 
-impl<DB> TrieDB<DB>
+impl<DB> TrieDb<DB>
 where
     DB: Database,
 {
     pub fn new(db: Arc<DB>) -> Self {
-        TrieDB {
+        TrieDb {
             db,
             cache: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -49,7 +49,7 @@ where
 }
 
 /// "TrieDB" provides state read/write capabilities for executor.
-impl<DB> cita_trie::DB for TrieDB<DB>
+impl<DB> cita_trie::DB for TrieDb<DB>
 where
     DB: Database,
 {
@@ -120,12 +120,12 @@ where
     }
 }
 
-impl<DB> Clone for TrieDB<DB>
+impl<DB> Clone for TrieDb<DB>
 where
     DB: Database,
 {
     fn clone(&self) -> Self {
-        TrieDB {
+        TrieDb {
             db: Arc::clone(&self.db),
             cache: Arc::clone(&self.cache),
         }

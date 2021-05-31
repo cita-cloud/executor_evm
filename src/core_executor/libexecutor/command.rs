@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::executor::CitaTrieDB;
+use super::executor::CitaTrieDb;
 use super::executor::Executor;
 use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::exception::ExecutedException;
-use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
+use crate::core_executor::libexecutor::block::EvmBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
-use crate::core_executor::trie_db::TrieDB;
+use crate::core_executor::trie_db::TrieDb;
 use crate::types::block_number::BlockTag;
 use crate::types::context::Context;
 use crate::types::errors::CallError;
@@ -45,10 +45,10 @@ pub enum Command {
     StateAt(BlockTag),
     GenState(H256, H256),
     CodeAt(Address, BlockTag),
-    ABIAt(Address, BlockTag),
+    AbiAt(Address, BlockTag),
     BalanceAt(Address, BlockTag),
     NonceAt(Address, BlockTag),
-    ETHCall(CallRequest, BlockTag),
+    EthCall(CallRequest, BlockTag),
     EstimateQuota(CallRequest, BlockTag),
     SignCall(CallRequest),
     Call(SignedTransaction, BlockTag),
@@ -61,13 +61,13 @@ pub enum Command {
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
 pub enum CommandResp {
-    StateAt(Option<CitaState<CitaTrieDB>>),
-    GenState(Option<CitaState<CitaTrieDB>>),
+    StateAt(Option<CitaState<CitaTrieDb>>),
+    GenState(Option<CitaState<CitaTrieDb>>),
     CodeAt(Option<Bytes>),
-    ABIAt(Option<Bytes>),
+    AbiAt(Option<Bytes>),
     BalanceAt(Option<Bytes>),
     NonceAt(Option<U256>),
-    ETHCall(Result<Bytes, String>),
+    EthCall(Result<Bytes, String>),
     EstimateQuota(Result<Bytes, String>),
     SignCall(SignedTransaction),
     Call(Result<CitaExecuted, CallError>),
@@ -84,10 +84,10 @@ impl fmt::Display for Command {
             Command::StateAt(_) => write!(f, "Command::StateAt"),
             Command::GenState(_, _) => write!(f, "Command::GenState"),
             Command::CodeAt(_, _) => write!(f, "Command::CodeAt"),
-            Command::ABIAt(_, _) => write!(f, "Command::ABIAt"),
+            Command::AbiAt(_, _) => write!(f, "Command::ABIAt"),
             Command::BalanceAt(_, _) => write!(f, "Command::BalanceAt"),
             Command::NonceAt(_, _) => write!(f, "Command::NonceAt"),
-            Command::ETHCall(_, _) => write!(f, "Command::ETHCall"),
+            Command::EthCall(_, _) => write!(f, "Command::ETHCall"),
             Command::EstimateQuota(_, _) => write!(f, "Command::EstimateQuota"),
             Command::SignCall(_) => write!(f, "Command::SignCall"),
             Command::Call(_, _) => write!(f, "Command::Call"),
@@ -106,10 +106,10 @@ impl fmt::Display for CommandResp {
             CommandResp::StateAt(_) => write!(f, "CommandResp::StateAt"),
             CommandResp::GenState(_) => write!(f, "CommandResp::GenState"),
             CommandResp::CodeAt(_) => write!(f, "CommandResp::CodeAt"),
-            CommandResp::ABIAt(_) => write!(f, "CommandResp::ABIAt"),
+            CommandResp::AbiAt(_) => write!(f, "CommandResp::ABIAt"),
             CommandResp::BalanceAt(_) => write!(f, "CommandResp::BalanceAt"),
             CommandResp::NonceAt(_) => write!(f, "CommandResp::NonceAt"),
-            CommandResp::ETHCall(_) => write!(f, "CommandResp::ETHCall"),
+            CommandResp::EthCall(_) => write!(f, "CommandResp::ETHCall"),
             CommandResp::EstimateQuota(_) => write!(f, "CommandResp::EstimateQuota"),
             CommandResp::SignCall(_) => write!(f, "CommandResp::SignCall"),
             CommandResp::Call(_) => write!(f, "CommandResp::Call"),
@@ -124,8 +124,8 @@ impl fmt::Display for CommandResp {
 
 pub trait Commander {
     fn operate(&mut self, command: Command) -> CommandResp;
-    fn state_at(&self, block_tag: BlockTag) -> Option<CitaState<CitaTrieDB>>;
-    fn gen_state(&self, root: H256, parent_hash: H256) -> Option<CitaState<CitaTrieDB>>;
+    fn state_at(&self, block_tag: BlockTag) -> Option<CitaState<CitaTrieDb>>;
+    fn gen_state(&self, root: H256, parent_hash: H256) -> Option<CitaState<CitaTrieDb>>;
     fn code_at(&self, address: &Address, block_tag: BlockTag) -> Option<Bytes>;
     fn abi_at(&self, address: &Address, block_tag: BlockTag) -> Option<Bytes>;
     fn balance_at(&self, address: &Address, block_tag: BlockTag) -> Option<Bytes>;
@@ -168,8 +168,8 @@ impl Commander for Executor {
             Command::CodeAt(address, block_tag) => {
                 CommandResp::CodeAt(self.code_at(&address, block_tag))
             }
-            Command::ABIAt(address, block_tag) => {
-                CommandResp::ABIAt(self.abi_at(&address, block_tag))
+            Command::AbiAt(address, block_tag) => {
+                CommandResp::AbiAt(self.abi_at(&address, block_tag))
             }
             Command::BalanceAt(address, block_tag) => {
                 CommandResp::BalanceAt(self.balance_at(&address, block_tag))
@@ -177,8 +177,8 @@ impl Commander for Executor {
             Command::NonceAt(address, block_tag) => {
                 CommandResp::NonceAt(self.nonce_at(&address, block_tag))
             }
-            Command::ETHCall(call_request, block_tag) => {
-                CommandResp::ETHCall(self.eth_call(call_request, block_tag))
+            Command::EthCall(call_request, block_tag) => {
+                CommandResp::EthCall(self.eth_call(call_request, block_tag))
             }
             Command::EstimateQuota(call_request, block_tag) => {
                 CommandResp::EstimateQuota(self.estimate_quota(call_request, block_tag))
@@ -207,15 +207,15 @@ impl Commander for Executor {
     }
 
     /// Attempt to get a copy of a specific block's final state.
-    fn state_at(&self, id: BlockTag) -> Option<CitaState<CitaTrieDB>> {
+    fn state_at(&self, id: BlockTag) -> Option<CitaState<CitaTrieDb>> {
         self.block_header(id)
             .and_then(|h| self.gen_state(*h.state_root(), *h.parent_hash()))
     }
 
     /// Generate block's final state.
-    fn gen_state(&self, root: H256, _parent_hash: H256) -> Option<CitaState<CitaTrieDB>> {
+    fn gen_state(&self, root: H256, _parent_hash: H256) -> Option<CitaState<CitaTrieDb>> {
         // FIXME: There is a RWLock for clone a db, is it ok for using Arc::clone?
-        CitaState::from_existing(Arc::<CitaTrieDB>::clone(&self.state_db), root).ok()
+        CitaState::from_existing(Arc::<CitaTrieDb>::clone(&self.state_db), root).ok()
     }
 
     /// Get code by address
@@ -285,7 +285,7 @@ impl Commander for Executor {
             block_quota_limit: max_quota,
             account_quota_limit: u64::max_value().into(),
         };
-        let block_data_provider = Arc::new(EVMBlockDataProvider::new(context.clone()));
+        let block_data_provider = Arc::new(EvmBlockDataProvider::new(context.clone()));
 
         let sender = *signed.sender();
 
@@ -404,7 +404,7 @@ impl Commander for Executor {
         // that's just a copy of the state.
         //        let mut state = self.state_at(block_tag).ok_or(CallError::StatePruned)?;
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
 
         let state_root = if let Some(h) = self.block_header(block_tag) {
             *h.state_root()
@@ -414,7 +414,7 @@ impl Commander for Executor {
         };
 
         let state = match CitaState::from_existing(
-            Arc::<TrieDB<RocksDB>>::clone(&self.state_db),
+            Arc::<TrieDb<RocksDB>>::clone(&self.state_db),
             state_root,
         ) {
             Ok(state_db) => state_db,
@@ -494,7 +494,7 @@ pub fn state_at(
     command_req_sender: &Sender<Command>,
     command_resp_receiver: &Receiver<CommandResp>,
     block_tag: BlockTag,
-) -> Option<CitaState<CitaTrieDB>> {
+) -> Option<CitaState<CitaTrieDb>> {
     let _ = command_req_sender.send(Command::StateAt(block_tag));
     match command_resp_receiver.recv().unwrap() {
         CommandResp::StateAt(r) => r,
@@ -507,7 +507,7 @@ pub fn gen_state(
     command_resp_receiver: &Receiver<CommandResp>,
     root: H256,
     parent_hash: H256,
-) -> Option<CitaState<CitaTrieDB>> {
+) -> Option<CitaState<CitaTrieDb>> {
     let _ = command_req_sender.send(Command::GenState(root, parent_hash));
     match command_resp_receiver.recv().unwrap() {
         CommandResp::GenState(r) => r,
@@ -534,9 +534,9 @@ pub fn abi_at(
     address: Address,
     block_tag: BlockTag,
 ) -> Option<Bytes> {
-    let _ = command_req_sender.send(Command::ABIAt(address, block_tag));
+    let _ = command_req_sender.send(Command::AbiAt(address, block_tag));
     match command_resp_receiver.recv().unwrap() {
-        CommandResp::ABIAt(r) => r,
+        CommandResp::AbiAt(r) => r,
         _ => unimplemented!(),
     }
 }
@@ -573,9 +573,9 @@ pub fn eth_call(
     call_request: CallRequest,
     block_tag: BlockTag,
 ) -> Result<Bytes, String> {
-    let _ = command_req_sender.send(Command::ETHCall(call_request, block_tag));
+    let _ = command_req_sender.send(Command::EthCall(call_request, block_tag));
     match command_resp_receiver.recv().unwrap() {
-        CommandResp::ETHCall(r) => r,
+        CommandResp::EthCall(r) => r,
         _ => unimplemented!(),
     }
 }

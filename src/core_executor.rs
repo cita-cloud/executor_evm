@@ -25,4 +25,4 @@ mod trie_db;
 
 pub use crate::types::*;
 pub use cita_database as cita_db;
-pub use trie_db::TrieDB;
+pub use trie_db::TrieDb;

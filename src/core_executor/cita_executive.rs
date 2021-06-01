@@ -190,7 +190,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                         gas_limit.as_u64(),
                         gas_left,
                     ) {
-                        finalize_result.exception = Some(ExecutedException::VM(e));
+                        finalize_result.exception = Some(ExecutedException::Vm(e));
                         return finalize_result;
                     }
                 }
@@ -224,7 +224,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                         gas_limit.as_u64(),
                         gas_left,
                     ) {
-                        finalize_result.exception = Some(ExecutedException::VM(e));
+                        finalize_result.exception = Some(ExecutedException::Vm(e));
                         return finalize_result;
                     }
                 }
@@ -253,7 +253,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                         gas_limit.as_u64(),
                         gas_left,
                     ) {
-                        finalize_result.exception = Some(ExecutedException::VM(e));
+                        finalize_result.exception = Some(ExecutedException::Vm(e));
                         return finalize_result;
                     }
                 }
@@ -285,7 +285,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                         gas_limit.as_u64(),
                         0,
                     ) {
-                        finalize_result.exception = Some(ExecutedException::VM(e));
+                        finalize_result.exception = Some(ExecutedException::Vm(e));
                         return finalize_result;
                     }
                 }
@@ -293,7 +293,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                     .borrow_mut()
                     .kill_garbage(&store.borrow().inused.clone());
 
-                finalize_result.exception = Some(ExecutedException::VM(e));
+                finalize_result.exception = Some(ExecutedException::Vm(e));
                 finalize_result.quota_used = gas_limit;
                 finalize_result.quota_left = U256::from(0);
             }
@@ -775,7 +775,7 @@ pub struct ExecutedResult {
 #[cfg(test)]
 mod tests {
     use super::{CitaExecutive, Context, ExecutionError, TxGasSchedule};
-    use crate::core_executor::libexecutor::block::EVMBlockDataProvider;
+    use crate::core_executor::libexecutor::block::EvmBlockDataProvider;
     use crate::tests::helpers::*;
     use crate::types::transaction::Action;
     use crate::types::transaction::Transaction;
@@ -825,7 +825,7 @@ mod tests {
         let mut context = Context::default();
         context.block_quota_limit = U256::from(100_000);
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
 
         let state = Arc::new(RefCell::new(state));
 
@@ -866,7 +866,7 @@ mod tests {
         let mut context = Context::default();
         context.block_quota_limit = U256::from(100_000);
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
 
         let state = Arc::new(RefCell::new(state));
 
@@ -913,7 +913,7 @@ mod tests {
         let mut context = Context::default();
         context.block_quota_limit = U256::from(100_000);
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         let result =
@@ -946,7 +946,7 @@ mod tests {
         let mut context = Context::default();
         context.block_quota_limit = U256::from(100);
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         let result =
@@ -978,7 +978,7 @@ mod tests {
         let mut context = Context::default();
         context.block_quota_limit = U256::from(100_000);
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         let result =
@@ -1027,7 +1027,7 @@ contract HelloWorld {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         let res =
@@ -1080,7 +1080,7 @@ contract AbiTest {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         {
@@ -1137,7 +1137,7 @@ contract AbiTest {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         {
@@ -1204,7 +1204,7 @@ contract AbiTest {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         {
@@ -1276,7 +1276,7 @@ contract AbiTest {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         {
@@ -1363,7 +1363,7 @@ contract FakePermissionManagement {
 
         let context = Context::default();
 
-        let block_data_provider = EVMBlockDataProvider::new(context.clone());
+        let block_data_provider = EvmBlockDataProvider::new(context.clone());
         let state = Arc::new(RefCell::new(state));
 
         {

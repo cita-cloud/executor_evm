@@ -33,7 +33,7 @@ use clap::{App, Arg};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
-use core_executor::libexecutor::fsm::FSM;
+use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
 use std::thread;

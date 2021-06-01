@@ -16,24 +16,24 @@ use super::block::{ClosedBlock, ExecutedBlock, OpenBlock};
 use super::executor::Executor;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
-pub enum StatusOfFSM {
+pub enum StatusOfFsm {
     Initialize(OpenBlock),
     Pause(ExecutedBlock, usize),
     Execute(ExecutedBlock, usize),
     Finalize(ExecutedBlock),
 }
 
-impl std::fmt::Display for StatusOfFSM {
+impl std::fmt::Display for StatusOfFsm {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match *self {
-            StatusOfFSM::Initialize(ref open_block) => write!(
+            StatusOfFsm::Initialize(ref open_block) => write!(
                 f,
                 "StatusOfFSM::Initialize(height: {}, parent_hash: {:?}, timestamp: {})",
                 open_block.number(),
                 open_block.parent_hash(),
                 open_block.timestamp(),
             ),
-            StatusOfFSM::Pause(ref executed_block, index) => write!(
+            StatusOfFsm::Pause(ref executed_block, index) => write!(
                 f,
                 "StatusOfFSM::Pause(height: {}, parent_hash: {:?}, state_root: {:?}, timestamp: {}, index: {})",
                 executed_block.number(),
@@ -42,7 +42,7 @@ impl std::fmt::Display for StatusOfFSM {
                 executed_block.timestamp(),
                 index,
             ),
-            StatusOfFSM::Execute(ref executed_block, index) => write!(
+            StatusOfFsm::Execute(ref executed_block, index) => write!(
                 f,
                 "StatusOfFSM::Execute(height: {}, parent_hash: {:?}, state_root: {:?}, timestamp: {}, index: {})",
                 executed_block.number(),
@@ -51,7 +51,7 @@ impl std::fmt::Display for StatusOfFSM {
                 executed_block.timestamp(),
                 index,
             ),
-            StatusOfFSM::Finalize(ref executed_block) => write!(
+            StatusOfFsm::Finalize(ref executed_block) => write!(
                 f,
                 "StatusOfFSM::Finalize(height: {}, parent_hash: {:?}, state_root: {:?}, timestamp: {})",
                 executed_block.number(),
@@ -63,47 +63,47 @@ impl std::fmt::Display for StatusOfFSM {
     }
 }
 
-pub trait FSM {
+pub trait Fsm {
     fn into_fsm(&mut self, open_block: OpenBlock) -> ClosedBlock;
-    fn fsm_initialize(&self, open_block: OpenBlock) -> StatusOfFSM;
-    fn fsm_pause(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFSM;
-    fn fsm_execute(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFSM;
+    fn fsm_initialize(&self, open_block: OpenBlock) -> StatusOfFsm;
+    fn fsm_pause(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFsm;
+    fn fsm_execute(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFsm;
     fn fsm_finalize(&self, executed_block: ExecutedBlock) -> ClosedBlock;
 }
 
-impl FSM for Executor {
+impl Fsm for Executor {
     fn into_fsm(&mut self, open_block: OpenBlock) -> ClosedBlock {
-        let mut status = StatusOfFSM::Initialize(open_block);
+        let mut status = StatusOfFsm::Initialize(open_block);
         loop {
             trace!("executor is at {}", status);
             status = match status {
-                StatusOfFSM::Initialize(open_block) => self.fsm_initialize(open_block),
-                StatusOfFSM::Pause(executed_block, index) => self.fsm_pause(executed_block, index),
-                StatusOfFSM::Execute(executed_block, index) => {
+                StatusOfFsm::Initialize(open_block) => self.fsm_initialize(open_block),
+                StatusOfFsm::Pause(executed_block, index) => self.fsm_pause(executed_block, index),
+                StatusOfFsm::Execute(executed_block, index) => {
                     self.fsm_execute(executed_block, index)
                 }
-                StatusOfFSM::Finalize(executed_block) => return self.fsm_finalize(executed_block),
+                StatusOfFsm::Finalize(executed_block) => return self.fsm_finalize(executed_block),
             }
         }
     }
 
-    fn fsm_initialize(&self, open_block: OpenBlock) -> StatusOfFSM {
+    fn fsm_initialize(&self, open_block: OpenBlock) -> StatusOfFsm {
         let executed_block = self.to_executed_block(open_block);
-        StatusOfFSM::Pause(executed_block, 0)
+        StatusOfFsm::Pause(executed_block, 0)
     }
 
-    fn fsm_pause(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFSM {
+    fn fsm_pause(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFsm {
         if index == executed_block.body().transactions().len() {
-            StatusOfFSM::Finalize(executed_block)
+            StatusOfFsm::Finalize(executed_block)
         } else {
-            StatusOfFSM::Execute(executed_block, index + 1)
+            StatusOfFsm::Execute(executed_block, index + 1)
         }
     }
 
-    fn fsm_execute(&self, mut executed_block: ExecutedBlock, index: usize) -> StatusOfFSM {
+    fn fsm_execute(&self, mut executed_block: ExecutedBlock, index: usize) -> StatusOfFsm {
         let transaction = executed_block.body().transactions[index - 1].clone();
         executed_block.apply_transaction(&transaction);
-        StatusOfFSM::Pause(executed_block, index)
+        StatusOfFsm::Pause(executed_block, index)
     }
 
     fn fsm_finalize(&self, executed_block: ExecutedBlock) -> ClosedBlock {
@@ -121,7 +121,7 @@ mod tests {
     use super::ExecutedBlock;
     use crate::core_executor::libexecutor::block::OpenBlock;
     use crate::core_executor::libexecutor::executor::Executor;
-    use crate::core_executor::libexecutor::fsm::{StatusOfFSM, FSM};
+    use crate::core_executor::libexecutor::fsm::{StatusOfFsm, Fsm};
     use crate::tests::helpers::{
         create_block, generate_block_body, generate_block_header, generate_contract, init_executor,
         init_executor2,
@@ -149,57 +149,57 @@ mod tests {
     }
 
     // transit and commit state root
-    fn transit(executor: &mut Executor, status: StatusOfFSM) -> StatusOfFSM {
+    fn transit(executor: &mut Executor, status: StatusOfFsm) -> StatusOfFsm {
         let new_status = match status {
-            StatusOfFSM::Initialize(open_block) => executor.fsm_initialize(open_block),
-            StatusOfFSM::Pause(executed_block, iter) => executor.fsm_pause(executed_block, iter),
-            StatusOfFSM::Execute(executed_block, iter) => {
+            StatusOfFsm::Initialize(open_block) => executor.fsm_initialize(open_block),
+            StatusOfFsm::Pause(executed_block, iter) => executor.fsm_pause(executed_block, iter),
+            StatusOfFsm::Execute(executed_block, iter) => {
                 executor.fsm_execute(executed_block, iter)
             }
-            StatusOfFSM::Finalize(_executed_block) => unimplemented!(),
+            StatusOfFsm::Finalize(_executed_block) => unimplemented!(),
         };
         match new_status {
-            StatusOfFSM::Initialize(open_block) => StatusOfFSM::Initialize(open_block),
-            StatusOfFSM::Pause(executed_block, iter) => {
+            StatusOfFsm::Initialize(open_block) => StatusOfFsm::Initialize(open_block),
+            StatusOfFsm::Pause(executed_block, iter) => {
                 executed_block
                     .state
                     .borrow_mut()
                     .commit()
                     .expect("commit state");
-                StatusOfFSM::Pause(executed_block, iter)
+                StatusOfFsm::Pause(executed_block, iter)
             }
-            StatusOfFSM::Execute(executed_block, iter) => {
+            StatusOfFsm::Execute(executed_block, iter) => {
                 executed_block
                     .state
                     .borrow_mut()
                     .commit()
                     .expect("commit state");
-                StatusOfFSM::Execute(executed_block, iter)
+                StatusOfFsm::Execute(executed_block, iter)
             }
-            StatusOfFSM::Finalize(executed_block) => {
+            StatusOfFsm::Finalize(executed_block) => {
                 executed_block
                     .state
                     .borrow_mut()
                     .commit()
                     .expect("commit state");
-                StatusOfFSM::Finalize(executed_block)
+                StatusOfFsm::Finalize(executed_block)
             }
         }
     }
 
     fn transit_and_assert(
         executor: &mut Executor,
-        status_from: StatusOfFSM,
-        expect_to: StatusOfFSM,
-    ) -> (StatusOfFSM, ExecutedBlock) {
+        status_from: StatusOfFsm,
+        expect_to: StatusOfFsm,
+    ) -> (StatusOfFsm, ExecutedBlock) {
         let status_to = transit(executor, status_from);
         assert_eq!(format!("{}", expect_to), format!("{}", status_to),);
 
         let executed_block = match expect_to {
-            StatusOfFSM::Initialize(_open_block) => unimplemented!(),
-            StatusOfFSM::Pause(executed_block, _iter) => executed_block,
-            StatusOfFSM::Execute(executed_block, _iter) => executed_block,
-            StatusOfFSM::Finalize(executed_block) => executed_block,
+            StatusOfFsm::Initialize(_open_block) => unimplemented!(),
+            StatusOfFsm::Pause(executed_block, _iter) => executed_block,
+            StatusOfFsm::Execute(executed_block, _iter) => executed_block,
+            StatusOfFsm::Finalize(executed_block) => executed_block,
         };
         (status_to, executed_block)
     }
@@ -213,7 +213,7 @@ mod tests {
             let executed_block = executor.to_executed_block(open_block.clone());
             let status_after_init = executor.fsm_initialize(open_block.clone());
             assert_eq!(
-                format!("{}", StatusOfFSM::Pause(executed_block, 0)),
+                format!("{}", StatusOfFsm::Pause(executed_block, 0)),
                 format!("{}", status_after_init)
             );
         }
@@ -223,7 +223,7 @@ mod tests {
             let executed_block_clone = executor.to_executed_block(open_block.clone());
             let status_after_pause_2 = executor.fsm_pause(executed_block, 2);
             assert_eq!(
-                format!("{}", StatusOfFSM::Execute(executed_block_clone, 2 + 1)),
+                format!("{}", StatusOfFsm::Execute(executed_block_clone, 2 + 1)),
                 format!("{}", status_after_pause_2)
             );
         }
@@ -233,7 +233,7 @@ mod tests {
             let executed_block_clone = executor.to_executed_block(open_block.clone());
             let status_after_pause_200 = executor.fsm_pause(executed_block, 200);
             assert_eq!(
-                format!("{}", StatusOfFSM::Finalize(executed_block_clone)),
+                format!("{}", StatusOfFsm::Finalize(executed_block_clone)),
                 format!("{}", status_after_pause_200)
             );
         }
@@ -261,7 +261,7 @@ mod tests {
         open_block.header.set_timestamp(2);
 
         assert_eq!(
-            format!("{}", StatusOfFSM::Initialize(open_block)),
+            format!("{}", StatusOfFsm::Initialize(open_block)),
             format!("{}", status_after_pause_2)
         );
     }
@@ -286,7 +286,7 @@ mod tests {
         let status_after_pause_2 = executor.fsm_pause(executed_block, 2);
 
         assert_eq!(
-            format!("{}", StatusOfFSM::Pause(executed_block_clone, 2)),
+            format!("{}", StatusOfFsm::Pause(executed_block_clone, 2)),
             format!("{}", status_after_pause_2)
         );
     }
@@ -301,17 +301,17 @@ mod tests {
         let open_block = generate_block(&executor, 2);
 
         // 1. init -> pause(0) -> execute(1) -> pause(1)
-        let status_of_initialize = StatusOfFSM::Initialize(open_block.clone());
+        let status_of_initialize = StatusOfFsm::Initialize(open_block.clone());
         let executed_block = executor.to_executed_block(open_block.clone());
         let (status_of_pause, executed_block) = transit_and_assert(
             &mut executor,
             status_of_initialize,
-            StatusOfFSM::Pause(executed_block, 0),
+            StatusOfFsm::Pause(executed_block, 0),
         );
         let (status_of_execute_1th, mut executed_block) = transit_and_assert(
             &mut executor,
             status_of_pause,
-            StatusOfFSM::Execute(executed_block, 1),
+            StatusOfFsm::Execute(executed_block, 1),
         );
 
         // 2. execute 1th transaction
@@ -325,7 +325,7 @@ mod tests {
         let (status_of_pause_1th, mut executed_block) = transit_and_assert(
             &mut executor,
             status_of_execute_1th,
-            StatusOfFSM::Pause(executed_block, 1),
+            StatusOfFsm::Pause(executed_block, 1),
         );
 
         // 3. send an equivalent OpenBlock into fsm_req channel
@@ -343,10 +343,10 @@ mod tests {
         let mut status = status_of_pause_1th;
         loop {
             status = match status {
-                StatusOfFSM::Finalize(_) => {
+                StatusOfFsm::Finalize(_) => {
                     assert_eq!(
                         format!("{}", status),
-                        format!("{}", StatusOfFSM::Finalize(executed_block)),
+                        format!("{}", StatusOfFsm::Finalize(executed_block)),
                     );
                     break;
                 }
@@ -365,7 +365,7 @@ mod tests {
         let open_block = generate_block(&executor, 2);
 
         // 1. init -> pause(0) -> execute(1) -> pause(1)
-        let status_of_initialize = StatusOfFSM::Initialize(open_block.clone());
+        let status_of_initialize = StatusOfFsm::Initialize(open_block.clone());
         let status_of_pause = transit(&mut executor, status_of_initialize);
         let status_of_execute = transit(&mut executor, status_of_pause);
         let status_of_pause = transit(&mut executor, status_of_execute);
@@ -389,10 +389,10 @@ mod tests {
         let mut status = status_of_pause;
         loop {
             status = match status {
-                StatusOfFSM::Finalize(_) => {
+                StatusOfFsm::Finalize(_) => {
                     assert_eq!(
                         format!("{}", status),
-                        format!("{}", StatusOfFSM::Finalize(executed_block)),
+                        format!("{}", StatusOfFsm::Finalize(executed_block)),
                     );
                     break;
                 }

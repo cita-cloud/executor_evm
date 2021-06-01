@@ -15,7 +15,7 @@
 use crate::core_executor::libexecutor::block::OpenBlock;
 use crate::core_executor::libexecutor::command::Commander;
 use crate::core_executor::libexecutor::executor::Executor;
-use crate::core_executor::libexecutor::fsm::FSM;
+use crate::core_executor::libexecutor::fsm::Fsm;
 use crate::tests::helpers;
 use crate::types::Address;
 use cita_crypto::{CreateKey, KeyPair};

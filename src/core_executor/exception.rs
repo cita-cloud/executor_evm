@@ -21,7 +21,7 @@ use cita_vm::Error as VMError;
 // There is not reverted expcetion in VMError, so handle this in ExecutedException.
 #[derive(Debug)]
 pub enum ExecutedException {
-    VM(VMError),
+    Vm(VMError),
     NativeContract(NativeError),
     Reverted,
 }
@@ -31,7 +31,7 @@ impl Error for ExecutedException {}
 impl fmt::Display for ExecutedException {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let printable = match *self {
-            ExecutedException::VM(ref err) => format!("exception in vm: {:?}", err),
+            ExecutedException::Vm(ref err) => format!("exception in vm: {:?}", err),
             ExecutedException::NativeContract(ref err) => {
                 format!("exception in native contract: {:?}", err)
             }
@@ -43,7 +43,7 @@ impl fmt::Display for ExecutedException {
 
 impl From<VMError> for ExecutedException {
     fn from(err: VMError) -> Self {
-        ExecutedException::VM(err)
+        ExecutedException::Vm(err)
     }
 }
 

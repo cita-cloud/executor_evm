@@ -10,8 +10,8 @@ use cita_cloud_proto::controller::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::controller::RawTransaction as CloudRawTransaction;
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
-    Balance as CloudBalance, ByteCode as CloudByteCode, Nonce as CloudNonce,
-    Receipt as CloudReceipt,
+    Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
+    Nonce as CloudNonce, Receipt as CloudReceipt,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -40,7 +40,7 @@ impl ExecutorService for ExecutorServer {
         request: Request<CloudCompactBlock>,
     ) -> std::result::Result<Response<CloudHash>, Status> {
         let block = request.into_inner();
-        debug!("get exec request: {:x?}", block.clone());
+        debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
         info!("exec method invoke, height: {}", open_blcok.header.number());
 
@@ -54,8 +54,11 @@ impl ExecutorService for ExecutorServer {
 
                 let raw_tx = CloudRawTransaction::decode(&tx_bytes[..]).unwrap();
                 match raw_tx.tx {
-                    Some(CloudTx::NormalTx(utx)) => open_blcok.insert_cloud_tx(utx),
-                    Some(unknown) => info!("block contains unknown tx: `{:?}`", unknown),
+                    Some(CloudTx::NormalTx(utx)) => {
+                        debug!("exec normal_tx hash: {}", hex::encode(utx.transaction_hash.clone()));
+                        open_blcok.insert_cloud_tx(utx);
+                    },
+                    Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
                     None => info!("block contains empty tx"),
                 }
             }
@@ -166,6 +169,21 @@ impl RpcService for ExecutorServer {
                 Ok(Response::new(CloudNonce { nonce }))
             }
             _ => Err(Status::new(Code::InvalidArgument, "Not get the nonce")),
+        }
+    }
+
+    async fn get_abi(&self, request: Request<CloudAddress>) -> Result<Response<CloudByteAbi>, Status> {
+        let cloud_address = request.into_inner();
+        let _ = self.command_req_sender.send(Command::AbiAt(
+            Address::from(cloud_address.address.as_slice()),
+            BlockTag::Tag(Tag::Pending),
+        ));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::AbiAt(Some(bytes_abi))) => {
+                Ok(Response::new(CloudByteAbi { bytes_abi }))
+            }
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the abi")),
         }
     }
 }

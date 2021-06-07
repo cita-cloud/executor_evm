@@ -121,7 +121,7 @@ mod tests {
     use super::ExecutedBlock;
     use crate::core_executor::libexecutor::block::OpenBlock;
     use crate::core_executor::libexecutor::executor::Executor;
-    use crate::core_executor::libexecutor::fsm::{StatusOfFsm, Fsm};
+    use crate::core_executor::libexecutor::fsm::{Fsm, StatusOfFsm};
     use crate::tests::helpers::{
         create_block, generate_block_body, generate_block_header, generate_contract, init_executor,
         init_executor2,

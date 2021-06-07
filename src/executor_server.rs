@@ -44,9 +44,12 @@ impl ExecutorService for ExecutorServer {
             for raw_tx in body.body {
                 match raw_tx.tx {
                     Some(CloudTx::NormalTx(utx)) => {
-                        debug!("exec normal_tx hash: {}", hex::encode(utx.transaction_hash.clone()));
+                        debug!(
+                            "exec normal_tx hash: {}",
+                            hex::encode(utx.transaction_hash.clone())
+                        );
                         open_blcok.insert_cloud_tx(utx);
-                    },
+                    }
                     Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
                     None => info!("block contains empty tx"),
                 }
@@ -161,7 +164,10 @@ impl RpcService for ExecutorServer {
         }
     }
 
-    async fn get_abi(&self, request: Request<CloudAddress>) -> Result<Response<CloudByteAbi>, Status> {
+    async fn get_abi(
+        &self,
+        request: Request<CloudAddress>,
+    ) -> Result<Response<CloudByteAbi>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::AbiAt(
             Address::from(cloud_address.address.as_slice()),

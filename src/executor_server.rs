@@ -62,7 +62,7 @@ impl ExecutorService for ExecutorServer {
                 let header = executed_result.get_executed_info().get_header();
                 let state_root = header.get_state_root();
                 info!(
-                    "height: {}, state_root: {}",
+                    "height: {}, state_root: 0x{}",
                     header.get_height(),
                     hex::encode(state_root)
                 );

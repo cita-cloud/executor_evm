@@ -44,7 +44,7 @@ byteorder = { version = "1", default-features = false }
 bincode = "0.8.0"
 rustc-serialize = "0.3"
 lru-cache = "0.1.1"
-rand = "0.3"
+rand = "*"
 transient-hashmap = "0.4.0"
 ethabi = "4.2.0"
 largest-remainder-method = "0.1"

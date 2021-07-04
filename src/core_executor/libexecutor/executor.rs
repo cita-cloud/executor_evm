@@ -257,12 +257,7 @@ impl Executor {
         let mut last_hashes = LastHashes::new();
         last_hashes.resize(256, H256::default());
         last_hashes[0] = parent_hash;
-        for (i, last_hash) in last_hashes
-            .iter_mut()
-            .enumerate()
-            .take(255 as usize)
-            .skip(1)
-        {
+        for (i, last_hash) in last_hashes.iter_mut().enumerate().take(255_usize).skip(1) {
             if i >= parent_height as usize {
                 break;
             }

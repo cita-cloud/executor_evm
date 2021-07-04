@@ -4,10 +4,9 @@ use crate::types::block::OpenBlock;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::Bytes;
 use crate::types::{Address, H256};
-use cita_cloud_proto::blockchain::CompactBlock as CloudCompactBlock;
+use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
+use cita_cloud_proto::blockchain::Block as CloudBlock;
 use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
-use cita_cloud_proto::controller::raw_transaction::Tx as CloudTx;
-use cita_cloud_proto::controller::RawTransaction as CloudRawTransaction;
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
@@ -18,9 +17,6 @@ use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
 use crossbeam_channel::{Receiver, Sender};
-use prost::Message;
-use std::path::Path;
-use tokio::fs;
 use tonic::{Code, Request, Response, Status};
 
 #[derive(Clone)]
@@ -37,7 +33,7 @@ pub struct ExecutorServer {
 impl ExecutorService for ExecutorServer {
     async fn exec(
         &self,
-        request: Request<CloudCompactBlock>,
+        request: Request<CloudBlock>,
     ) -> std::result::Result<Response<CloudHash>, Status> {
         let block = request.into_inner();
         debug!("get exec request: {:x?}", block);
@@ -45,19 +41,15 @@ impl ExecutorService for ExecutorServer {
         info!("exec method invoke, height: {}", open_blcok.header.number());
 
         if let Some(body) = block.body {
-            for tx_hash in body.tx_hashes {
-                let filename = hex::encode(&tx_hash);
-                let root_path = Path::new(".");
-                let tx_path = root_path.join("txs").join(filename);
-
-                let tx_bytes = fs::read(tx_path).await.unwrap();
-
-                let raw_tx = CloudRawTransaction::decode(&tx_bytes[..]).unwrap();
+            for raw_tx in body.body {
                 match raw_tx.tx {
                     Some(CloudTx::NormalTx(utx)) => {
-                        debug!("exec normal_tx hash: {}", hex::encode(utx.transaction_hash.clone()));
+                        debug!(
+                            "exec normal_tx hash: {}",
+                            hex::encode(utx.transaction_hash.clone())
+                        );
                         open_blcok.insert_cloud_tx(utx);
-                    },
+                    }
                     Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
                     None => info!("block contains empty tx"),
                 }
@@ -70,7 +62,7 @@ impl ExecutorService for ExecutorServer {
                 let header = executed_result.get_executed_info().get_header();
                 let state_root = header.get_state_root();
                 info!(
-                    "height: {}, state_root: {}",
+                    "height: {}, state_root: 0x{}",
                     header.get_height(),
                     hex::encode(state_root)
                 );
@@ -172,7 +164,10 @@ impl RpcService for ExecutorServer {
         }
     }
 
-    async fn get_abi(&self, request: Request<CloudAddress>) -> Result<Response<CloudByteAbi>, Status> {
+    async fn get_abi(
+        &self,
+        request: Request<CloudAddress>,
+    ) -> Result<Response<CloudByteAbi>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::AbiAt(
             Address::from(cloud_address.address.as_slice()),

@@ -38,12 +38,6 @@ use hashable::Hashable;
 use libproto::executor::{ExecutedInfo, ReceiptWithOption};
 use rlp::Encodable;
 
-lazy_static! {
-    /// Block Reward
-    /// HardFork if need to change block reward
-    pub static ref BLOCK_REWARD: U256 = U256::from(5_000_000_000_000_000_000 as i64);
-}
-
 pub struct ExecutedBlock {
     pub block: OpenBlock,
     pub receipts: Vec<Receipt>,

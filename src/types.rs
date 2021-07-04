@@ -55,7 +55,7 @@ pub fn delete_left0(s: &str) -> &str {
 #[inline]
 pub fn clean_0x(s: &str) -> &str {
     if s.starts_with("0x") {
-        &s[2..]
+        s.strip_prefix("0x").unwrap()
     } else {
         s
     }
@@ -76,7 +76,7 @@ where
 fn convert_u8_to_char(u: u8) -> char {
     match u {
         u if u < 10 => (b'0' + u) as char,
-        u if 10 <= u && u < 16 => (b'a' + (u - 10)) as char,
+        u if (10..16).contains(&u) => (b'a' + (u - 10)) as char,
         _ => panic!("{} not bwtween 0 and 15", u),
     }
 }

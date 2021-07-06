@@ -91,9 +91,11 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         self.prepaid(t.sender(), t.gas, t.gas_price, t.value)?;
         let init_gas = t.gas - U256::from(base_gas_required);
 
-        let mut store = VMSubState::default();
-        store.evm_context = build_evm_context(&self.context.clone());
-        store.evm_cfg = get_interpreter_conf();
+        let store = VMSubState {
+            evm_context: build_evm_context(&self.context.clone()),
+            evm_cfg: get_interpreter_conf(),
+            ..Default::default()
+        };
         let store = Arc::new(RefCell::new(store));
 
         let result = match t.action {
@@ -653,7 +655,11 @@ pub fn build_vm_exec_params<B: DB + 'static>(
     params: &ExecutiveParams,
     state_provider: Arc<RefCell<State<B>>>,
 ) -> VmExecParams {
-    let mut vm_exec_params = VmExecParams::default();
+    let mut vm_exec_params = VmExecParams {
+        origin: params.sender,
+        sender: params.sender,
+        ..Default::default()
+    };
     vm_exec_params.origin = params.sender;
     vm_exec_params.sender = params.sender;
     if let Some(data) = params.to_address {

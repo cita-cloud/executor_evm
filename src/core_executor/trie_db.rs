@@ -84,7 +84,36 @@ where
         }
     }
 
+    #[cfg(feature = "full-node")]
+    fn remove(&self, key: &[u8]) -> Result<(), Self::Error> {
+        if H256::from(key) == HASH_NULL_RLP {
+            return Ok(());
+        }
+        self.cache.write().remove(key);
+        self.db.remove(Some(DataCategory::State), key)
+    }
+
+    #[cfg(feature = "full-node")]
+    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<(), Self::Error> {
+        {
+            let mut cache = self.cache.write();
+            for key in keys {
+                if H256::from(&key[..]) == HASH_NULL_RLP {
+                    continue;
+                }
+                cache.remove(key);
+            }
+        }
+        self.db.remove_batch(Some(DataCategory::State), keys)
+    }
+
+    #[cfg(not(feature = "full-node"))]
     fn remove(&self, _key: &[u8]) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    #[cfg(not(feature = "full-node"))]
+    fn remove_batch(&self, _keys: &[Vec<u8>]) -> Result<(), Self::Error> {
         Ok(())
     }
 
@@ -98,10 +127,6 @@ where
             let value = values[i].clone();
             cache.insert(key, value);
         }
-        Ok(())
-    }
-
-    fn remove_batch(&self, _keys: &[Vec<u8>]) -> Result<(), Self::Error> {
         Ok(())
     }
 

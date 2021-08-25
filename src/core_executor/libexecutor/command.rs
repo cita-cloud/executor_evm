@@ -247,11 +247,9 @@ impl Commander for Executor {
         let signed = self.sign_call(request);
         match self.call(&signed, id) {
             Ok(b) => {
-                if let Some(e) = b.exception {
-                    if let ExecutedException::Reverted = e {
-                        if let Some(estr) = parse_reason_string(&b.output) {
-                            return Err("Reverted: ".to_owned() + &estr);
-                        }
+                if let Some(ExecutedException::Reverted) = b.exception {
+                    if let Some(estr) = parse_reason_string(&b.output) {
+                        return Err("Reverted: ".to_owned() + &estr);
                     }
                 }
                 Ok(b.output)

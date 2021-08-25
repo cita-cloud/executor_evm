@@ -155,7 +155,7 @@ impl<B: DB + 'static> evm::DataProvider for DataProvider<B> {
         self.state_provider
             .borrow_mut()
             .code(address)
-            .unwrap_or_else(|_| vec![])
+            .unwrap_or_else(|_| Vec::new())
     }
 
     fn get_code_hash(&self, address: &Address) -> H256 {

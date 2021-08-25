@@ -76,7 +76,8 @@ pub fn call_pure<B: DB + 'static>(
 
 /// Returns the default interpreter configs for Constantinople.
 pub fn get_interpreter_conf() -> InterpreterConf {
-    let mut evm_cfg = InterpreterConf::default();
-    evm_cfg.eip1283 = false;
-    evm_cfg
+    InterpreterConf {
+        eip1283: false,
+        ..Default::default()
+    }
 }

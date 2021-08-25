@@ -100,7 +100,7 @@ impl RpcService for ExecutorServer {
         let cloud_hash = request.into_inner();
         let _ = self
             .command_req_sender
-            .send(Command::ReceiptAt(H256::from(cloud_hash.hash.as_slice())));
+            .send(Command::ReceiptAt(H256::from_slice(cloud_hash.hash.as_slice())));
 
         match self.command_resp_receiver.recv() {
             Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => {
@@ -116,7 +116,7 @@ impl RpcService for ExecutorServer {
     ) -> Result<Response<CloudByteCode>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::CodeAt(
-            Address::from(cloud_address.address.as_slice()),
+            Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -134,7 +134,7 @@ impl RpcService for ExecutorServer {
     ) -> Result<Response<CloudBalance>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::BalanceAt(
-            Address::from(cloud_address.address.as_slice()),
+            Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -150,7 +150,7 @@ impl RpcService for ExecutorServer {
     ) -> Result<Response<CloudNonce>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::NonceAt(
-            Address::from(cloud_address.address.as_slice()),
+            Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -170,7 +170,7 @@ impl RpcService for ExecutorServer {
     ) -> Result<Response<CloudByteAbi>, Status> {
         let cloud_address = request.into_inner();
         let _ = self.command_req_sender.send(Command::AbiAt(
-            Address::from(cloud_address.address.as_slice()),
+            Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 

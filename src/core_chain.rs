@@ -190,7 +190,7 @@ impl Chain {
                 .map(|r| {
                     Receipt::from_with_state_root(
                         r.get_receipt().clone(),
-                        Some(H256::from(info.get_header().get_state_root())),
+                        Some(H256::from_slice(info.get_header().get_state_root())),
                     )
                 })
                 .collect();

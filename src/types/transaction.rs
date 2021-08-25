@@ -66,9 +66,9 @@ impl Decodable for Action {
         if rlp.is_empty() {
             Ok(Action::Create)
         } else {
-            let store_addr: Address = STORE_ADDRESS.into();
-            let abi_addr: Address = ABI_ADDRESS.into();
-            let amend_addr: Address = AMEND_ADDRESS.into();
+            let store_addr: Address = Address::from_str(STORE_ADDRESS).unwrap();
+            let abi_addr: Address = Address::from_str(ABI_ADDRESS).unwrap();
+            let amend_addr: Address = Address::from_str(AMEND_ADDRESS).unwrap();
             let addr: Address = rlp.as_val()?;
             if addr == store_addr {
                 Ok(Action::Store)
@@ -85,9 +85,9 @@ impl Decodable for Action {
 
 impl Encodable for Action {
     fn rlp_append(&self, s: &mut RlpStream) {
-        let store_addr: Address = STORE_ADDRESS.into();
-        let abi_addr: Address = ABI_ADDRESS.into();
-        let amend_addr: Address = AMEND_ADDRESS.into();
+        let store_addr: Address = Address::from_str(STORE_ADDRESS).unwrap();
+        let abi_addr: Address = Address::from_str(ABI_ADDRESS).unwrap();
+        let amend_addr: Address = Address::from_str(AMEND_ADDRESS).unwrap();
         match *self {
             Action::Create => s.append_internal(&""),
             Action::Call(ref addr) => s.append_internal(addr),
@@ -222,7 +222,7 @@ impl Transaction {
                     if to.is_empty() {
                         Action::Create
                     } else {
-                        let to_addr = Address::from(to);
+                        let to_addr = Address::from_slice(to);
                         match to_addr.lower_hex().as_str() {
                             STORE_ADDRESS => Action::Store,
                             ABI_ADDRESS => Action::AbiStore,
@@ -263,7 +263,7 @@ impl Transaction {
             transaction: UnverifiedTransaction {
                 unsigned: self,
                 signature,
-                hash: 0.into(),
+                hash: H256::from_low_u64_le(0),
                 crypto_type: CryptoType::default(),
             },
             sender: from,
@@ -315,11 +315,11 @@ impl Transaction {
         } else {
             match self.action {
                 Action::Create => pt.clear_to(),
-                Action::Call(ref to) => pt.set_to_v1(to.to_vec()),
-                Action::Store => pt.set_to_v1(Address::from_str(STORE_ADDRESS).unwrap().to_vec()),
-                Action::AbiStore => pt.set_to_v1(Address::from_str(ABI_ADDRESS).unwrap().to_vec()),
+                Action::Call(ref to) => pt.set_to_v1(to.0.to_vec()),
+                Action::Store => pt.set_to_v1(Address::from_str(STORE_ADDRESS).unwrap().0.to_vec()),
+                Action::AbiStore => pt.set_to_v1(Address::from_str(ABI_ADDRESS).unwrap().0.to_vec()),
                 Action::AmendData => {
-                    pt.set_to_v1(Address::from_str(AMEND_ADDRESS).unwrap().to_vec())
+                    pt.set_to_v1(Address::from_str(AMEND_ADDRESS).unwrap().0.to_vec())
                 }
             }
         }
@@ -516,7 +516,7 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
                     STORE_ADDRESS => Action::Store,
                     ABI_ADDRESS => Action::AbiStore,
                     AMEND_ADDRESS => Action::AmendData,
-                    _ => Action::Call(Address::from(raw_tx.to.as_slice())),
+                    _ => Action::Call(Address::from_slice(raw_tx.to.as_slice())),
                 }
             };
             let tx = Transaction {
@@ -534,11 +534,11 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
                 unsigned: tx,
                 signature: Signature::default(),
                 crypto_type: CryptoType::Default,
-                hash: H256::from(ctx.transaction_hash.as_slice()),
+                hash: H256::from_slice(ctx.transaction_hash.as_slice()),
             };
             return SignedTransaction {
                 transaction: utx,
-                sender: Address::from(ctx.witness.unwrap().sender.as_slice()), // tx must have sender
+                sender: Address::from_slice(ctx.witness.unwrap().sender.as_slice()), // tx must have sender
                 public: PubKey::default(),
             };
         }
@@ -558,7 +558,7 @@ impl SignedTransaction {
             return Err(Error::InvalidPubKey);
         }
 
-        let tx_hash = H256::from(stx.get_tx_hash());
+        let tx_hash = H256::from_slice(stx.get_tx_hash());
         let public = PubKey::from_slice(stx.get_signer());
         let sender = pubkey_to_address(&public);
         Ok(SignedTransaction {
@@ -571,11 +571,6 @@ impl SignedTransaction {
     /// Returns the cached tx_hash.
     pub fn get_transaction_hash(&self) -> H256 {
         self.transaction.hash()
-    }
-
-    /// Calculate tx_hash from tx data and return it.
-    pub fn calc_transaction_hash(&self) -> H256 {
-        self.transaction.proto_unverified().crypt_hash()
     }
 
     /// Returns transaction sender.
@@ -593,8 +588,8 @@ impl SignedTransaction {
         let mut stx = ProtoSignedTransaction::new();
         let utx = self.transaction.proto_unverified();
         stx.set_transaction_with_sig(utx);
-        stx.set_tx_hash(self.hash().to_vec());
-        stx.set_signer(self.public.to_vec());
+        stx.set_tx_hash(self.hash().as_bytes().to_vec());
+        stx.set_signer(self.public.as_bytes().to_vec());
         stx
     }
 }

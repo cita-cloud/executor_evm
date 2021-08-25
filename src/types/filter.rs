@@ -90,7 +90,7 @@ impl TopicFilter {
                         .iter()
                         .map(|topic| {
                             let mut bloom = bloom;
-                            bloom.accrue_raw(topic);
+                            bloom.accrue_raw(topic.as_bytes());
                             bloom
                         })
                         .collect::<Vec<Bloom>>()

@@ -56,7 +56,7 @@ where
     type Error = DatabaseError;
 
     fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>, Self::Error> {
-        if H256::from(key) == HASH_NULL_RLP {
+        if H256::from_slice(key) == HASH_NULL_RLP {
             return Ok(Some(NULL_RLP_STATIC.to_vec()));
         }
         match self.cache.read().get(key) {
@@ -66,7 +66,7 @@ where
     }
 
     fn insert(&self, key: Vec<u8>, value: Vec<u8>) -> Result<(), Self::Error> {
-        if H256::from(key.as_slice()) == HASH_NULL_RLP {
+        if H256::from_slice(key.as_slice()) == HASH_NULL_RLP {
             return Ok(());
         }
         self.cache.write().insert(key, value);
@@ -74,7 +74,7 @@ where
     }
 
     fn contains(&self, key: &[u8]) -> Result<bool, Self::Error> {
-        if H256::from(key) == HASH_NULL_RLP {
+        if H256::from_slice(key) == HASH_NULL_RLP {
             return Ok(true);
         }
         if self.cache.read().contains_key(key) {
@@ -92,7 +92,7 @@ where
         let mut cache = self.cache.write();
         for i in 0..keys.len() {
             let key = keys[i].clone();
-            if H256::from(key.as_slice()) == HASH_NULL_RLP {
+            if H256::from_slice(key.as_slice()) == HASH_NULL_RLP {
                 continue;
             }
             let value = values[i].clone();

@@ -33,7 +33,7 @@ impl Decodable for StateProof {
 
 impl StateProof {
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        rlp::decode(bytes)
+        rlp::decode(bytes).unwrap()
     }
 
     // FixMe: The implementation should be finished while fixing cross chain

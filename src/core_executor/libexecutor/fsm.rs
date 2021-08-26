@@ -145,7 +145,13 @@ mod tests {
         let keypair = KeyPair::gen_keypair();
         let privkey = keypair.privkey();
         let data = generate_contract();
-        create_block(&executor, Address::from(0), &data, (0, txs), &privkey)
+        create_block(
+            &executor,
+            Address::from_low_u64_le(0),
+            &data,
+            (0, txs),
+            &privkey,
+        )
     }
 
     // transit and commit state root

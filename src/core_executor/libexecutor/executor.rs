@@ -170,7 +170,7 @@ impl Executor {
         let height_key = db_indexes::BlockNumber2Hash(number).get_index();
         self.db
             .get(Some(DataCategory::Extra), &height_key.to_vec())
-            .map(|h| h.map(|hash| decode::<H256>(hash.as_slice())))
+            .map(|h| h.map(|hash| decode(hash.as_slice()).unwrap()))
             .expect("Get block header error.")
     }
 
@@ -218,7 +218,7 @@ impl Executor {
         let hash_key = db_indexes::Hash2Header(hash).get_index();
         self.db
             .get(Some(DataCategory::Headers), &hash_key.to_vec())
-            .map(|header| header.map(|bytes| decode::<Header>(bytes.as_slice())))
+            .map(|header| header.map(|bytes| decode(bytes.as_slice()).unwrap()))
             .expect("Get block header error.")
     }
 
@@ -318,13 +318,13 @@ pub fn get_current_header(db: Arc<CitaDb>) -> Option<Header> {
     let current_hash_key = db_indexes::CurrentHash.get_index();
     if let Ok(hash) = db.get(Some(DataCategory::Extra), &current_hash_key.to_vec()) {
         let hash: H256 = if let Some(h) = hash {
-            decode(h.as_slice())
+            decode(h.as_slice()).unwrap()
         } else {
             return None;
         };
         let hash_key = db_indexes::Hash2Header(hash).get_index();
         if let Ok(header) = db.get(Some(DataCategory::Headers), &hash_key.to_vec()) {
-            Some(decode::<Header>(header.unwrap().as_slice()))
+            Some(decode(header.unwrap().as_slice()).unwrap())
         } else {
             None
         }
@@ -391,7 +391,13 @@ mod tests {
 
         let data = helpers::generate_contract();
         for _i in 0..5 {
-            let block = helpers::create_block(&executor, Address::from(0), &data, (0, 1), &privkey);
+            let block = helpers::create_block(
+                &executor,
+                Address::from_low_u64_le(0),
+                &data,
+                (0, 1),
+                &privkey,
+            );
             let mut closed_block = executor.into_fsm(block.clone());
             executor.grow(&closed_block);
             closed_block.clear_cache();
@@ -421,7 +427,13 @@ mod tests {
         let mut executor = helpers::init_executor();
 
         let data = helpers::generate_contract();
-        let block = helpers::create_block(&executor, Address::from(0), &data, (0, 1), &privkey);
+        let block = helpers::create_block(
+            &executor,
+            Address::from_low_u64_le(0),
+            &data,
+            (0, 1),
+            &privkey,
+        );
         let mut closed_block = executor.into_fsm(block.clone());
         let closed_block_height = closed_block.number();
         let closed_block_hash = closed_block.hash();

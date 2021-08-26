@@ -21,7 +21,7 @@ use cita_cloud_proto::blockchain::{
     Block as CloudBlock, UnverifiedTransaction as CloudUnverifiedTransaction,
 };
 use libproto::blockchain::{
-    Block as ProtoBlock, BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
+    BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
 };
 use rlp::*;
 use std::collections::HashMap;
@@ -33,16 +33,6 @@ pub struct OpenBlock {
     pub header: OpenHeader,
     /// The body of this block.
     pub body: BlockBody,
-}
-
-impl From<ProtoBlock> for OpenBlock {
-    fn from(b: ProtoBlock) -> Self {
-        let header = OpenHeader::from_protobuf(&b);
-        Self {
-            header,
-            body: BlockBody::from(b.get_body().clone()),
-        }
-    }
 }
 
 impl From<CloudBlock> for OpenBlock {
@@ -102,7 +92,7 @@ pub struct Block {
 }
 
 impl Decodable for Block {
-    fn decode(r: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(r: &Rlp) -> Result<Self, DecoderError> {
         if r.item_count()? != 2 {
             return Err(DecoderError::RlpIncorrectListLen);
         }
@@ -152,14 +142,6 @@ impl Block {
         self.body = b;
     }
 
-    pub fn protobuf(&self) -> ProtoBlock {
-        let mut block = ProtoBlock::new();
-        block.set_version(self.version());
-        block.set_header(self.header.protobuf());
-        block.set_body(self.body.protobuf());
-        block
-    }
-
     pub fn new(block: OpenBlock) -> Self {
         let header = Header::new(block.header);
         Self {
@@ -183,7 +165,7 @@ impl Encodable for BlockBody {
 }
 
 impl Decodable for BlockBody {
-    fn decode(r: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(r: &Rlp) -> Result<Self, DecoderError> {
         let block_body = BlockBody {
             transactions: r.as_list()?,
         };

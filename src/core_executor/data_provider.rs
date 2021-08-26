@@ -233,7 +233,7 @@ impl<B: DB + 'static> evm::DataProvider for DataProvider<B> {
     }
 
     fn sha3(&self, data: &[u8]) -> H256 {
-        From::from(&hasher::HasherKeccak::new().digest(data)[..])
+        H256::from_slice(hasher::HasherKeccak::new().digest(data).as_slice())
     }
 
     fn is_empty(&self, address: &Address) -> bool {

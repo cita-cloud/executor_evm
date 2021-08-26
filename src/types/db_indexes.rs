@@ -15,6 +15,7 @@
 use crate::types::block_number::BlockNumber;
 use crate::types::{H256, H264};
 use bloomchain::group::GroupPosition;
+use std::str::FromStr;
 
 const TRANSACTION_INDEX: u8 = 0;
 const BLOCKRECEIPTS_INDEX: u8 = 1;
@@ -31,7 +32,10 @@ pub struct CurrentHash;
 
 impl DbIndex for CurrentHash {
     fn get_index(&self) -> Vec<u8> {
-        H256::from("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f66").to_vec()
+        H256::from_str("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f66")
+            .unwrap()
+            .0
+            .to_vec()
     }
 }
 
@@ -39,7 +43,10 @@ pub struct CurrentProof;
 
 impl DbIndex for CurrentProof {
     fn get_index(&self) -> Vec<u8> {
-        H256::from("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f67").to_vec()
+        H256::from_str("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f67")
+            .unwrap()
+            .0
+            .to_vec()
     }
 }
 
@@ -47,7 +54,10 @@ pub struct CurrentHeight;
 
 impl DbIndex for CurrentHeight {
     fn get_index(&self) -> Vec<u8> {
-        H256::from("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f68").to_vec()
+        H256::from_str("7cabfb7709b29c16d9e876e876c9988d03f9c3414e1d3ff77ec1de2d0ee59f68")
+            .unwrap()
+            .0
+            .to_vec()
     }
 }
 
@@ -55,7 +65,7 @@ pub struct Hash2Header(pub H256);
 
 impl DbIndex for Hash2Header {
     fn get_index(&self) -> Vec<u8> {
-        self.0.to_vec()
+        self.0 .0.to_vec()
     }
 }
 
@@ -63,7 +73,7 @@ pub struct Hash2BlockBody(pub H256);
 
 impl DbIndex for Hash2BlockBody {
     fn get_index(&self) -> Vec<u8> {
-        self.0.to_vec()
+        self.0 .0.to_vec()
     }
 }
 
@@ -71,7 +81,7 @@ pub struct Hash2BlockNumber(pub H256);
 
 impl DbIndex for Hash2BlockNumber {
     fn get_index(&self) -> Vec<u8> {
-        self.0.to_vec()
+        self.0 .0.to_vec()
     }
 }
 
@@ -130,9 +140,9 @@ pub struct Hash2TransactionIndex(pub H256);
 impl DbIndex for Hash2TransactionIndex {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
-        result[0] = TRANSACTION_INDEX as u8;
-        (*result)[1..].clone_from_slice(&self.0);
-        result.to_vec()
+        result.0[0] = TRANSACTION_INDEX as u8;
+        result.0[1..].clone_from_slice(&self.0.as_bytes());
+        result.0.to_vec()
     }
 }
 
@@ -141,9 +151,9 @@ pub struct Hash2BlockReceipts(pub H256);
 impl DbIndex for Hash2BlockReceipts {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
-        result[0] = BLOCKRECEIPTS_INDEX as u8;
-        (*result)[1..].clone_from_slice(&self.0);
-        result.to_vec()
+        result.0[0] = BLOCKRECEIPTS_INDEX as u8;
+        result.0[1..].clone_from_slice(&self.0.as_bytes());
+        result.0.to_vec()
     }
 }
 

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 use libproto::executor::ReceiptError as ProtoReceiptError;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Copy, Eq)]
 pub enum ReceiptError {
@@ -123,7 +123,7 @@ impl ReceiptError {
 }
 
 impl Decodable for ReceiptError {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         match rlp.as_val::<u8>()? {
             0 => Ok(ReceiptError::NotEnoughBaseQuota),
             1 => Ok(ReceiptError::BlockQuotaLimitReached),

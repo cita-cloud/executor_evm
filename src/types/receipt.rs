@@ -24,9 +24,8 @@ use crate::types::errors::ReceiptError;
 use crate::types::log::{LocalizedLog, Log};
 use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_cloud_proto::evm::Receipt as CloudReceipt;
-use jsonrpc_types::rpc_types::Receipt as RpcReceipt;
 use libproto::executor::{Receipt as ProtoReceipt, ReceiptErrorWithOption, StateRoot};
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Receipt {
@@ -65,7 +64,7 @@ impl Receipt {
         let mut receipt_error_with_option = ReceiptErrorWithOption::new();
 
         if let Some(state_root) = self.state_root {
-            state_root_option.set_state_root(state_root.to_vec());
+            state_root_option.set_state_root(state_root.0.to_vec());
             receipt_proto.set_state_root(state_root_option);
         }
 
@@ -75,7 +74,7 @@ impl Receipt {
         }
 
         receipt_proto.set_quota_used(self.quota_used.lower_hex());
-        receipt_proto.set_log_bloom(self.log_bloom.to_vec());
+        receipt_proto.set_log_bloom(self.log_bloom.0.to_vec());
         receipt_proto.logs = self
             .logs
             .clone()
@@ -83,7 +82,7 @@ impl Receipt {
             .map(|log_entry| log_entry.protobuf())
             .collect();
         receipt_proto.set_account_nonce(self.account_nonce.as_u64());
-        receipt_proto.set_transaction_hash(self.transaction_hash.to_vec());
+        receipt_proto.set_transaction_hash(self.transaction_hash.0.to_vec());
         receipt_proto
     }
 
@@ -204,7 +203,7 @@ impl Encodable for Receipt {
 }
 
 impl Decodable for Receipt {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         if rlp.item_count()? == 6 {
             Ok(Receipt {
                 state_root: None,
@@ -244,24 +243,6 @@ pub struct RichReceipt {
     pub error: Option<ReceiptError>,
 }
 
-impl Into<RpcReceipt> for RichReceipt {
-    fn into(self) -> RpcReceipt {
-        RpcReceipt {
-            transaction_hash: Some(self.transaction_hash),
-            transaction_index: Some(self.transaction_index.into()),
-            block_hash: Some(self.block_hash),
-            block_number: Some(self.block_number.into()),
-            cumulative_quota_used: self.cumulative_quota_used,
-            quota_used: Some(self.quota_used),
-            contract_address: self.contract_address.map(Into::into),
-            logs: self.logs.into_iter().map(Into::into).collect(),
-            state_root: self.state_root.map(Into::into),
-            logs_bloom: self.log_bloom,
-            error_message: self.error.map(ReceiptError::description),
-        }
-    }
-}
-
 impl Into<CloudReceipt> for RichReceipt {
     fn into(self) -> CloudReceipt {
         let mut cumulative_quota_used = [0; 32];
@@ -270,24 +251,24 @@ impl Into<CloudReceipt> for RichReceipt {
         let mut quota_used = [0; 32];
         self.quota_used.to_big_endian(&mut quota_used);
         let contract_address = match self.contract_address {
-            Some(address) => address.to_vec(),
+            Some(address) => address.0.to_vec(),
             None => vec![0; 20],
         };
         let state_root = match self.state_root {
-            Some(root) => root.to_vec(),
+            Some(root) => root.0.to_vec(),
             None => vec![0; 32],
         };
         CloudReceipt {
-            transaction_hash: self.transaction_hash.to_vec(),
+            transaction_hash: self.transaction_hash.0.to_vec(),
             transaction_index: self.transaction_index as u64,
-            block_hash: self.block_hash.to_vec(),
+            block_hash: self.block_hash.0.to_vec(),
             block_number: self.block_number,
             cumulative_quota_used: cumulative_quota_used.to_vec(),
             quota_used: quota_used.to_vec(),
             contract_address,
             logs: self.logs.into_iter().map(Into::into).collect(),
             state_root,
-            logs_bloom: self.log_bloom.to_vec(),
+            logs_bloom: self.log_bloom.0.to_vec(),
             error_message: self
                 .error
                 .map(ReceiptError::description)
@@ -317,7 +298,7 @@ mod tests {
         );
         let encoded = ::rlp::encode(&r);
         println!("encode ok");
-        let decoded: Receipt = ::rlp::decode(&encoded);
+        let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
         println!("decoded: {:?}", decoded);
         assert_eq!(decoded, r);
     }
@@ -337,7 +318,7 @@ mod tests {
             "2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into(),
         );
         let encoded = ::rlp::encode(&r);
-        let decoded: Receipt = ::rlp::decode(&encoded);
+        let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
         println!("decoded: {:?}", decoded);
         assert_eq!(decoded, r);
     }
@@ -357,7 +338,7 @@ mod tests {
             "2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into(),
         );
         let encoded = ::rlp::encode(&r);
-        let decoded: Receipt = ::rlp::decode(&encoded);
+        let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
         println!("decoded: {:?}", decoded);
         assert_eq!(decoded, r);
     }

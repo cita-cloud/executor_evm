@@ -34,9 +34,9 @@ impl From<Call> for CallRequest {
             from: if call.get_from().is_empty() {
                 None
             } else {
-                Some(Address::from(call.get_from()))
+                Some(Address::from_slice(call.get_from()))
             },
-            to: Address::from(call.get_to()),
+            to: Address::from_slice(call.get_to()),
             data: if call.data.is_empty() {
                 None
             } else {
@@ -52,9 +52,9 @@ impl From<CloudCallRequest> for CallRequest {
             from: if call.from.is_empty() {
                 None
             } else {
-                Some(Address::from(call.from.as_slice()))
+                Some(Address::from_slice(call.from.as_slice()))
             },
-            to: Address::from(call.to.as_slice()),
+            to: Address::from_slice(call.to.as_slice()),
             data: if call.method.is_empty() {
                 None
             } else {

@@ -119,7 +119,7 @@ pub fn create_block(
 
     for i in nonce.0..nonce.1 {
         let mut tx = blockchain::Transaction::new();
-        if to == Address::from(0) {
+        if to == Address::from_low_u64_le(0) {
             tx.set_to(String::from(""));
         } else {
             tx.set_to(to.lower_hex());

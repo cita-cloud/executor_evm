@@ -15,14 +15,12 @@
 //! Block header.
 
 use crate::types::{Address, Bloom, H256, U256};
-use libproto::blockchain::{
-    Block as ProtoBlock, BlockHeader as ProtoBlockHeader, Proof as ProtoProof, ProofType,
-};
+use libproto::blockchain::{Proof as ProtoProof, ProofType};
 use libproto::executor::{ExecutedHeader, ExecutedInfo};
-use rlp::{self, Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{self, Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use std::cmp;
 use std::ops::{Deref, DerefMut};
-use time::get_time;
+use time::OffsetDateTime;
 
 use super::Bytes;
 pub use crate::types::block_number::BlockNumber;
@@ -82,32 +80,17 @@ impl Default for OpenHeader {
 }
 
 impl OpenHeader {
-    pub fn from_protobuf(block: &ProtoBlock) -> Self {
-        let header = block.get_header();
-        let version = block.get_version();
-        Self {
-            parent_hash: H256::from(header.get_prevhash()),
-            timestamp: header.get_timestamp(),
-            number: header.get_height(),
-            transactions_root: H256::from(header.get_transactions_root()),
-            quota_limit: U256::from(header.get_quota_limit()),
-            proof: header.get_proof().clone(),
-            version,
-            proposer: Address::from(header.get_proposer()),
-        }
-    }
-
     pub fn from_cloud_protobuf(block: &CloudBlock) -> Self {
         if let Some(header) = &block.header {
             return OpenHeader {
-                parent_hash: H256::from(header.prevhash.as_slice()),
+                parent_hash: H256::from_slice(header.prevhash.as_slice()),
                 timestamp: header.timestamp,
                 number: header.height,
-                transactions_root: H256::from(header.transactions_root.as_slice()),
+                transactions_root: H256::from_slice(header.transactions_root.as_slice()),
                 quota_limit: U256::from(u64::max_value()),
                 proof: ProtoProof::new(),
                 version: block.version,
-                proposer: Address::from(header.proposer.as_slice()),
+                proposer: Address::from_slice(header.proposer.as_slice()),
             };
         }
 
@@ -177,7 +160,10 @@ impl OpenHeader {
         self.timestamp = a;
     }
     pub fn set_timestamp_now(&mut self, but_later_than: u64) {
-        self.timestamp = cmp::max(get_time().sec as u64, but_later_than + 1);
+        self.timestamp = cmp::max(
+            OffsetDateTime::now_utc().unix_timestamp() as u64,
+            but_later_than + 1,
+        );
     }
     pub fn set_number(&mut self, a: BlockNumber) {
         self.number = a;
@@ -302,7 +288,10 @@ impl Header {
         self.new_dirty();
     }
     pub fn set_timestamp_now(&mut self, but_later_than: u64) {
-        self.timestamp = cmp::max(get_time().sec as u64, but_later_than + 1);
+        self.timestamp = cmp::max(
+            OffsetDateTime::now_utc().unix_timestamp() as u64,
+            but_later_than + 1,
+        );
         self.new_dirty();
     }
     pub fn set_number(&mut self, a: BlockNumber) {
@@ -348,28 +337,12 @@ impl Header {
     pub fn rlp(&self) -> Bytes {
         let mut s = RlpStream::new();
         self.stream_rlp(&mut s);
-        s.out()
+        s.out().to_vec()
     }
 
     /// Get the crypt_hash (Keccak or blake2b) of this header.
     pub fn rlp_hash(&self) -> H256 {
         self.rlp().crypt_hash()
-    }
-
-    /// Generate the protobuf header.
-    pub fn protobuf(&self) -> ProtoBlockHeader {
-        let mut bh = ProtoBlockHeader::new();
-        bh.set_prevhash(self.parent_hash.to_vec());
-        bh.set_timestamp(self.timestamp);
-        bh.set_height(self.number);
-        bh.set_state_root(self.state_root.to_vec());
-        bh.set_receipts_root(self.receipts_root.to_vec());
-        bh.set_transactions_root(self.transactions_root.to_vec());
-        bh.set_quota_used(u64::from(self.quota_used));
-        bh.set_quota_limit(self.quota_limit.low_u64());
-        bh.set_proof(self.proof.clone());
-        bh.set_proposer(self.proposer.to_vec());
-        bh
     }
 
     /// Generate a header, only set the fields which has been set in new proposal.
@@ -395,30 +368,18 @@ impl Header {
         header
     }
 
-    /// Generate the protobuf header, only set the fields which has been set in new proposal.
-    pub fn proposal_protobuf(&self) -> ProtoBlockHeader {
-        let mut bh = ProtoBlockHeader::new();
-        bh.set_prevhash(self.parent_hash.to_vec());
-        bh.set_timestamp(self.timestamp);
-        bh.set_height(self.number);
-        bh.set_transactions_root(self.transactions_root.to_vec());
-        bh.set_proof(self.proof.clone());
-        bh.set_proposer(self.proposer.to_vec());
-        bh
-    }
-
     pub fn generate_executed_header(self) -> ExecutedHeader {
         let mut executed_header = ExecutedHeader::new();
-        executed_header.set_prevhash(self.parent_hash.to_vec());
+        executed_header.set_prevhash(self.parent_hash.0.to_vec());
         executed_header.set_timestamp(self.timestamp);
         executed_header.set_height(self.number);
-        executed_header.set_state_root(self.state_root.to_vec());
-        executed_header.set_transactions_root(self.transactions_root.to_vec());
-        executed_header.set_receipts_root(self.receipts_root.to_vec());
-        executed_header.set_log_bloom(self.log_bloom.to_vec());
-        executed_header.set_quota_used(u64::from(self.quota_used));
+        executed_header.set_state_root(self.state_root.0.to_vec());
+        executed_header.set_transactions_root(self.transactions_root.0.to_vec());
+        executed_header.set_receipts_root(self.receipts_root.0.to_vec());
+        executed_header.set_log_bloom(self.log_bloom.0.to_vec());
+        executed_header.set_quota_used(self.quota_used.as_u64());
         executed_header.set_quota_limit(self.quota_limit.low_u64());
-        executed_header.set_proposer(self.proposer.to_vec());
+        executed_header.set_proposer(self.proposer.0.to_vec());
         executed_header
     }
 
@@ -428,16 +389,16 @@ impl Header {
                 number: info.get_header().get_height(),
                 quota_limit: U256::from(info.get_header().get_quota_limit()),
                 timestamp: info.get_header().get_timestamp(),
-                transactions_root: H256::from(info.get_header().get_transactions_root()),
+                transactions_root: H256::from_slice(info.get_header().get_transactions_root()),
                 proof: open_header.proof.clone(),
-                proposer: Address::from(info.get_header().get_proposer()),
+                proposer: Address::from_slice(info.get_header().get_proposer()),
                 version: open_header.version,
                 parent_hash: H256::from_slice(info.get_header().get_prevhash()),
             },
-            log_bloom: Bloom::from(info.get_header().get_log_bloom()),
+            log_bloom: Bloom::from_slice(info.get_header().get_log_bloom()),
             quota_used: U256::from(info.get_header().get_quota_used()),
-            receipts_root: H256::from(info.get_header().get_receipts_root()),
-            state_root: H256::from(info.get_header().get_state_root()),
+            receipts_root: H256::from_slice(info.get_header().get_receipts_root()),
+            state_root: H256::from_slice(info.get_header().get_state_root()),
             hash: None,
         };
         header.rehash();
@@ -446,19 +407,19 @@ impl Header {
 
     /// Recover a header from rlp bytes.
     pub fn from_bytes(bytes: &[u8]) -> Self {
-        rlp::decode(bytes)
+        rlp::decode(bytes).unwrap()
     }
 }
 
 impl Decodable for Header {
-    fn decode(r: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(r: &Rlp) -> Result<Self, DecoderError> {
         let blockheader = Header {
             open_header: OpenHeader {
                 parent_hash: r.val_at(0)?,
                 transactions_root: r.val_at(2)?,
                 number: r.val_at(5)?,
                 quota_limit: r.val_at(6)?,
-                timestamp: cmp::min(r.val_at::<U256>(8)?, u64::max_value().into()).as_u64(),
+                timestamp: cmp::min(r.val_at::<U256>(8)?, u64::MAX.into()).as_u64(),
                 version: r.val_at(9)?,
                 proof: r.val_at(10)?,
                 proposer: r.val_at(11)?,
@@ -492,7 +453,7 @@ mod tests {
         let header = Header::new(open_header);
         let header_rlp = rlp::encode(&header).into_vec();
 
-        let header: Header = rlp::decode(&header_rlp);
+        let header: Header = rlp::decode(&header_rlp).unwrap();
         let encoded_header = rlp::encode(&header).into_vec();
         assert_eq!(header_rlp, encoded_header);
     }

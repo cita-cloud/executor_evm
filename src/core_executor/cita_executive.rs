@@ -323,9 +323,14 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
             if balance512 < total_cost {
                 return Err(ExecutionError::NotEnoughBalance);
             }
+
+            let inner = gas_cost.0;
+            let mut gas_arr = [0; 4];
+            gas_arr.copy_from_slice(&inner[..4]);
+
             self.state_provider
                 .borrow_mut()
-                .sub_balance(&sender, U256::from(gas_cost))?;
+                .sub_balance(&sender, U256(gas_arr))?;
         }
         Ok(())
     }
@@ -334,7 +339,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         if data.len() <= 20 {
             return false;
         }
-        let account = H160::from(&data[0..20]);
+        let account = H160::from_slice(data);
         let abi = &data[20..];
 
         let account_exist = self
@@ -577,7 +582,7 @@ pub fn create_address_from_address_and_nonce(address: &Address, nonce: &U256) ->
     let mut stream = RlpStream::new_list(2);
     stream.append(address);
     stream.append(nonce);
-    Address::from(H256::from(summary(stream.as_raw()).as_slice()))
+    Address::from(H256::from_slice(summary(stream.as_raw()).as_slice()))
 }
 
 /// Returns new address created from sender salt and code hash.
@@ -593,7 +598,7 @@ pub fn create_address_from_salt_and_code_hash(
     buffer[1..=20].copy_from_slice(&address[..]);
     buffer[(1 + 20)..(1 + 20 + 32)].copy_from_slice(&salt[..]);
     buffer[(1 + 20 + 32)..].copy_from_slice(code_hash);
-    Address::from(H256::from(summary(&buffer[..]).as_slice()))
+    Address::from(H256::from_slice(summary(&buffer[..]).as_slice()))
 }
 
 /// If a contract creation is attempted, due to either a creation transaction
@@ -782,6 +787,7 @@ mod tests {
     use crate::types::{Address, H256, U256};
     use cita_crypto::{CreateKey, KeyPair};
     use cita_vm::state::StateObjectInfo;
+    use ethereum_types::BigEndianHash;
     use rustc_hex::FromHex;
     use std::cell::RefCell;
     use std::str::FromStr;
@@ -1149,9 +1155,9 @@ contract AbiTest {
         assert_eq!(
             state
                 .borrow_mut()
-                .get_storage(&contract_addr, &H256::from(&U256::from(0)))
+                .get_storage(&contract_addr, &H256::from_uint(&U256::from(0)))
                 .unwrap(),
-            H256::from(&U256::from(0x12345678))
+            H256::from_uint(&U256::from(0x12345678))
         );
     }
 
@@ -1221,9 +1227,9 @@ contract AbiTest {
         assert_eq!(
             state
                 .borrow_mut()
-                .get_storage(&contract_addr, &H256::from(&U256::from(0)))
+                .get_storage(&contract_addr, &H256::from_uint(&U256::from(0)))
                 .unwrap(),
-            H256::from(&U256::from(0x0))
+            H256::from_uint(&U256::from(0x0))
         );
     }
 
@@ -1293,9 +1299,9 @@ contract AbiTest {
         assert_eq!(
             state
                 .borrow_mut()
-                .get_storage(&contract_addr, &H256::from(&U256::from(0)))
+                .get_storage(&contract_addr, &H256::from_uint(&U256::from(0)))
                 .unwrap(),
-            H256::from(&U256::from(0x12345678))
+            H256::from_uint(&U256::from(0x12345678))
         );
     }
 

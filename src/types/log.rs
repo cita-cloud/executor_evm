@@ -17,9 +17,8 @@ use crate::types::block_number::BlockNumber;
 use crate::types::BloomTools;
 use crate::types::{Address, Bloom, H256};
 use cita_cloud_proto::evm::Log as CloudLog;
-use jsonrpc_types::rpc_types::Log as RpcLog;
 use libproto::executor::LogEntry as ProtoLog;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use std::ops::Deref;
 
 type Topic = Vec<H256>;
@@ -41,7 +40,7 @@ impl Encodable for Log {
 }
 
 impl Decodable for Log {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         Ok(Log {
             address: rlp.val_at(0)?,
             topics: rlp.list_at(1)?,
@@ -54,9 +53,9 @@ impl Log {
     pub fn bloom(&self) -> Bloom {
         self.topics
             .iter()
-            .fold(Bloom::from_raw(&self.address), |bloom, topic| {
+            .fold(Bloom::from_raw(self.address.as_bytes()), |bloom, topic| {
                 let mut bloom = bloom;
-                bloom.accrue_raw(&topic);
+                bloom.accrue_raw(topic.as_bytes());
                 bloom
             })
     }
@@ -64,31 +63,15 @@ impl Log {
     pub fn protobuf(&self) -> ProtoLog {
         let mut proto_log = ProtoLog::new();
 
-        proto_log.set_address(self.address.to_vec());
+        proto_log.set_address(self.address.0.to_vec());
         proto_log.topics = self
             .topics
             .clone()
             .into_iter()
-            .map(|topic| topic.to_vec())
+            .map(|topic| topic.0.to_vec())
             .collect();
         proto_log.set_data(self.data.clone());
         proto_log
-    }
-}
-
-impl Into<RpcLog> for Log {
-    fn into(self) -> RpcLog {
-        RpcLog {
-            address: self.address,
-            topics: self.topics.into_iter().map(Into::into).collect(),
-            data: self.data.into(),
-            block_hash: None,
-            block_number: None,
-            transaction_hash: None,
-            transaction_index: None,
-            log_index: None,
-            transaction_log_index: None,
-        }
     }
 }
 
@@ -112,36 +95,20 @@ impl Deref for LocalizedLog {
     }
 }
 
-impl Into<RpcLog> for LocalizedLog {
-    fn into(self) -> RpcLog {
-        RpcLog {
-            address: self.log.address,
-            topics: self.log.topics.into_iter().map(Into::into).collect(),
-            data: self.log.data.into(),
-            block_hash: Some(self.block_hash),
-            block_number: Some(self.block_number.into()),
-            transaction_hash: Some(self.transaction_hash),
-            transaction_index: Some(self.transaction_index.into()),
-            log_index: Some(self.log_index.into()),
-            transaction_log_index: Some(self.transaction_log_index.into()),
-        }
-    }
-}
-
 impl Into<CloudLog> for LocalizedLog {
     fn into(self) -> CloudLog {
         CloudLog {
-            address: self.log.address.to_vec(),
+            address: self.log.address.0.to_vec(),
             topics: self
                 .log
                 .topics
                 .into_iter()
-                .map(|topic| topic.to_vec())
+                .map(|topic| topic.0.to_vec())
                 .collect(),
             data: self.log.data.to_vec(),
-            block_hash: self.block_hash.to_vec(),
+            block_hash: self.block_hash.0.to_vec(),
             block_number: self.block_number,
-            transaction_hash: self.transaction_hash.to_vec(),
+            transaction_hash: self.transaction_hash.0.to_vec(),
             transaction_index: self.transaction_index as u64,
             log_index: self.log_index as u64,
             transaction_log_index: self.transaction_log_index as u64,

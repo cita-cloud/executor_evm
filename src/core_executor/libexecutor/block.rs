@@ -351,24 +351,24 @@ impl ClosedBlock {
 
         executed_info
             .mut_header()
-            .set_prevhash(self.parent_hash().to_vec());
+            .set_prevhash(self.parent_hash().0.to_vec());
         executed_info.mut_header().set_timestamp(self.timestamp());
         executed_info.mut_header().set_height(self.number());
         executed_info
             .mut_header()
-            .set_state_root(self.state_root().to_vec());
+            .set_state_root(self.state_root().0.to_vec());
         executed_info
             .mut_header()
-            .set_transactions_root(self.transactions_root().to_vec());
+            .set_transactions_root(self.transactions_root().0.to_vec());
         executed_info
             .mut_header()
-            .set_receipts_root(self.receipts_root().to_vec());
+            .set_receipts_root(self.receipts_root().0.to_vec());
         executed_info
             .mut_header()
-            .set_log_bloom(self.log_bloom().to_vec());
+            .set_log_bloom(self.log_bloom().0.to_vec());
         executed_info
             .mut_header()
-            .set_quota_used(u64::from(*self.quota_used()));
+            .set_quota_used(self.quota_used().as_u64());
         executed_info
             .mut_header()
             .set_quota_limit(self.quota_limit().low_u64());
@@ -385,7 +385,7 @@ impl ClosedBlock {
             .collect();
         executed_info
             .mut_header()
-            .set_proposer(self.proposer().to_vec());
+            .set_proposer(self.proposer().0.to_vec());
         executed_info
     }
 

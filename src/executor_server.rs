@@ -100,7 +100,9 @@ impl RpcService for ExecutorServer {
         let cloud_hash = request.into_inner();
         let _ = self
             .command_req_sender
-            .send(Command::ReceiptAt(H256::from_slice(cloud_hash.hash.as_slice())));
+            .send(Command::ReceiptAt(H256::from_slice(
+                cloud_hash.hash.as_slice(),
+            )));
 
         match self.command_resp_receiver.recv() {
             Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => {

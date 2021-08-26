@@ -391,7 +391,13 @@ mod tests {
 
         let data = helpers::generate_contract();
         for _i in 0..5 {
-            let block = helpers::create_block(&executor, Address::from_low_u64_le(0), &data, (0, 1), &privkey);
+            let block = helpers::create_block(
+                &executor,
+                Address::from_low_u64_le(0),
+                &data,
+                (0, 1),
+                &privkey,
+            );
             let mut closed_block = executor.into_fsm(block.clone());
             executor.grow(&closed_block);
             closed_block.clear_cache();
@@ -421,7 +427,13 @@ mod tests {
         let mut executor = helpers::init_executor();
 
         let data = helpers::generate_contract();
-        let block = helpers::create_block(&executor, Address::from_low_u64_le(0), &data, (0, 1), &privkey);
+        let block = helpers::create_block(
+            &executor,
+            Address::from_low_u64_le(0),
+            &data,
+            (0, 1),
+            &privkey,
+        );
         let mut closed_block = executor.into_fsm(block.clone());
         let closed_block_height = closed_block.number();
         let closed_block_hash = closed_block.hash();

@@ -17,9 +17,8 @@ use crate::types::block_number::BlockNumber;
 use crate::types::BloomTools;
 use crate::types::{Address, Bloom, H256};
 use cita_cloud_proto::evm::Log as CloudLog;
-use jsonrpc_types::rpc_types::Log as RpcLog;
 use libproto::executor::LogEntry as ProtoLog;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use std::ops::Deref;
 
 type Topic = Vec<H256>;
@@ -41,7 +40,7 @@ impl Encodable for Log {
 }
 
 impl Decodable for Log {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         Ok(Log {
             address: rlp.val_at(0)?,
             topics: rlp.list_at(1)?,

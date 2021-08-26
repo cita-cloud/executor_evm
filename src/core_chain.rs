@@ -69,7 +69,7 @@ impl BloomGroupDatabase for Chain {
             .get(Some(cita_db::DataCategory::Extra), &p.get_index())
             .unwrap_or(None)
             .map(|blooms| {
-                let g: LogBloomGroup = rlp::decode(&blooms);
+                let g: LogBloomGroup = rlp::decode(&blooms).unwrap();
                 g.into()
             })
     }
@@ -94,7 +94,7 @@ pub fn get_chain(db: &RocksDB) -> Option<Header> {
             &CurrentHash.get_index().to_vec(),
         )
         .unwrap_or(None)
-        .map(|h| decode::<H256>(&h));
+        .map(|h| decode::<H256>(&h).unwrap());
 
     if let Some(hash) = res {
         trace!("Get block height from hash : {:?}", hash);
@@ -103,13 +103,13 @@ pub fn get_chain(db: &RocksDB) -> Option<Header> {
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
             .map(|n| {
-                let height = decode::<BlockNumber>(&n);
+                let height = decode::<BlockNumber>(&n).unwrap();
                 trace!("Get chain from height : {:?}", height);
                 let height_key = BlockNumber2Header(height).get_index();
                 db.get(Some(cita_db::DataCategory::Headers), &height_key)
                     .unwrap_or(None)
                     .map(|res| {
-                        let header: Header = rlp::decode(&res);
+                        let header: Header = rlp::decode(&res).unwrap();
                         header
                     })
             })
@@ -126,7 +126,7 @@ pub fn get_chain_body_height(db: &RocksDB) -> Option<BlockNumber> {
     )
     .unwrap_or(None)
     .map(|res| {
-        let block_number: BlockNumber = rlp::decode(&res);
+        let block_number: BlockNumber = rlp::decode(&res).unwrap();
         block_number
     })
 }
@@ -157,13 +157,13 @@ impl Chain {
         self.db
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
-            .map(|res| decode::<BlockNumber>(&res))
+            .map(|res| decode::<BlockNumber>(&res).unwrap())
     }
 
     pub fn set_db_result(&self, ret: &ExecutedResult, block: &OpenBlock) {
         let info = ret.get_executed_info();
         let number = info.get_header().get_height();
-        let log_bloom = LogBloom::from(info.get_header().get_log_bloom());
+        let log_bloom = LogBloom::from_slice(info.get_header().get_log_bloom());
         let header = Header::from_executed_info(ret.get_executed_info(), &block.header);
         let header_hash = header.hash().unwrap();
 
@@ -199,7 +199,7 @@ impl Chain {
             let _ = self.db.insert(
                 Some(cita_db::DataCategory::Extra),
                 hash_key,
-                rlp::encode(&block_receipts).into_vec(),
+                rlp::encode(&block_receipts).to_vec(),
             );
         }
 
@@ -210,7 +210,7 @@ impl Chain {
                 let _ = self.db.insert(
                     Some(cita_db::DataCategory::Extra),
                     hash_key,
-                    rlp::encode(v).into_vec(),
+                    rlp::encode(v).to_vec(),
                 );
             }
         }
@@ -221,7 +221,7 @@ impl Chain {
         let _ = self.db.insert(
             Some(cita_db::DataCategory::Headers),
             number_key,
-            rlp::encode(&header).into_vec(),
+            rlp::encode(&header).to_vec(),
         );
 
         // Save Body
@@ -229,7 +229,7 @@ impl Chain {
         let _ = self.db.insert(
             Some(cita_db::DataCategory::Bodies),
             number_key,
-            rlp::encode(block.body()).into_vec(),
+            rlp::encode(block.body()).to_vec(),
         );
 
         // Save hash -> blockNumber
@@ -237,7 +237,7 @@ impl Chain {
         let _ = self.db.insert(
             Some(cita_db::DataCategory::Extra),
             hash_key,
-            rlp::encode(&number).into_vec(),
+            rlp::encode(&number).to_vec(),
         );
 
         // Save blocks blooms
@@ -245,7 +245,7 @@ impl Chain {
             let _ = self.db.insert(
                 Some(cita_db::DataCategory::Extra),
                 k.get_index(),
-                rlp::encode(v).into_vec(),
+                rlp::encode(v).to_vec(),
             );
         }
 
@@ -253,7 +253,7 @@ impl Chain {
         let _ = self.db.insert(
             Some(cita_db::DataCategory::Extra),
             CurrentHash.get_index(),
-            rlp::encode(&header_hash).into_vec(),
+            rlp::encode(&header_hash).to_vec(),
         );
 
         *self.current_header.write() = header;
@@ -306,7 +306,7 @@ impl Chain {
             .get(Some(cita_db::DataCategory::Headers), &number_key)
             .unwrap_or(None)
             .map(|res| {
-                let header: Header = rlp::decode(&res);
+                let header: Header = rlp::decode(&res).unwrap();
                 header
             })
     }
@@ -340,7 +340,7 @@ impl Chain {
             .get(Some(cita_db::DataCategory::Bodies), &number_key)
             .unwrap_or(None)
             .map(|res| {
-                let body: BlockBody = rlp::decode(&res);
+                let body: BlockBody = rlp::decode(&res).unwrap();
                 body
             })
     }
@@ -367,7 +367,7 @@ impl Chain {
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
             .map(|res| {
-                let tx_index: TransactionIndex = rlp::decode(&res);
+                let tx_index: TransactionIndex = rlp::decode(&res).unwrap();
                 tx_index
             })
     }
@@ -394,7 +394,7 @@ impl Chain {
                 let mut full_ts = FullTransaction::new();
                 full_ts.set_transaction(tx);
                 full_ts.set_block_number(block.number());
-                full_ts.set_block_hash(hash.to_vec());
+                full_ts.set_block_hash(hash.0.to_vec());
                 full_ts.set_index(index as u32);
                 full_ts
             })
@@ -402,7 +402,7 @@ impl Chain {
     }
 
     pub fn get_block_header_bytes(&self, tag: BlockTag) -> Option<Vec<u8>> {
-        self.block_header(tag).map(|x| x.rlp_bytes().into_vec())
+        self.block_header(tag).map(|x| x.rlp_bytes().to_vec())
     }
 
     pub fn get_rich_receipt(&self, tx_hash: TransactionHash) -> Option<RichReceipt> {
@@ -602,7 +602,7 @@ impl Chain {
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
             .map(|res| {
-                let block_receipts: BlockReceipts = rlp::decode(&res);
+                let block_receipts: BlockReceipts = rlp::decode(&res).unwrap();
                 block_receipts
             })
     }

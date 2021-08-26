@@ -14,7 +14,7 @@
 
 // FixMe: Rewrite
 use crate::types::H256;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Debug)]
 pub struct TransactionIndex {
@@ -23,7 +23,7 @@ pub struct TransactionIndex {
 }
 
 impl Decodable for TransactionIndex {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         let tx_index = TransactionIndex {
             block_hash: rlp.val_at(0)?,
             index: rlp.val_at(1)?,

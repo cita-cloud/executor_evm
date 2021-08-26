@@ -15,7 +15,7 @@
 use crate::types::Bloom as LogBloom;
 use bloomchain::group::BloomGroup;
 use bloomchain::Bloom;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Debug, Clone)]
 pub struct LogBloomGroup {
@@ -45,7 +45,7 @@ impl Into<BloomGroup> for LogBloomGroup {
 }
 
 impl Decodable for LogBloomGroup {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         let blooms = rlp.as_list()?;
         let group = LogBloomGroup { blooms };
         Ok(group)

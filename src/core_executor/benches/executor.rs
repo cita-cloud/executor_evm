@@ -25,7 +25,13 @@ fn generate_block(executor: &Executor, txs: u32) -> OpenBlock {
     let keypair = KeyPair::gen_keypair();
     let privkey = keypair.privkey();
     let data = helpers::generate_contract();
-    helpers::create_block(&executor, Address::from_low_u64_le(0), &data, (0, txs), &privkey)
+    helpers::create_block(
+        &executor,
+        Address::from_low_u64_le(0),
+        &data,
+        (0, txs),
+        &privkey,
+    )
 }
 
 #[bench]

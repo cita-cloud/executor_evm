@@ -14,7 +14,7 @@
 
 // FixMe: Rewrite
 use crate::types::receipt::Receipt;
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Clone)]
 pub struct BlockReceipts {
@@ -28,7 +28,7 @@ impl BlockReceipts {
 }
 
 impl Decodable for BlockReceipts {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         Ok(BlockReceipts {
             receipts: rlp.as_list()?,
         })

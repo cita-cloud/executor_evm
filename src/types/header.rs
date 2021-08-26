@@ -15,14 +15,12 @@
 //! Block header.
 
 use crate::types::{Address, Bloom, H256, U256};
-use libproto::blockchain::{
-    Block as ProtoBlock, BlockHeader as ProtoBlockHeader, Proof as ProtoProof, ProofType,
-};
+use libproto::blockchain::{Proof as ProtoProof, ProofType};
 use libproto::executor::{ExecutedHeader, ExecutedInfo};
-use rlp::{self, Decodable, DecoderError, Encodable, RlpStream, Rlp};
+use rlp::{self, Decodable, DecoderError, Encodable, Rlp, RlpStream};
 use std::cmp;
 use std::ops::{Deref, DerefMut};
-use time::get_time;
+use time::OffsetDateTime;
 
 use super::Bytes;
 pub use crate::types::block_number::BlockNumber;
@@ -82,21 +80,6 @@ impl Default for OpenHeader {
 }
 
 impl OpenHeader {
-    pub fn from_protobuf(block: &ProtoBlock) -> Self {
-        let header = block.get_header();
-        let version = block.get_version();
-        Self {
-            parent_hash: H256::from_slice(header.get_prevhash()),
-            timestamp: header.get_timestamp(),
-            number: header.get_height(),
-            transactions_root: H256::from_slice(header.get_transactions_root()),
-            quota_limit: U256::from(header.get_quota_limit()),
-            proof: header.get_proof().clone(),
-            version,
-            proposer: Address::from_slice(header.get_proposer()),
-        }
-    }
-
     pub fn from_cloud_protobuf(block: &CloudBlock) -> Self {
         if let Some(header) = &block.header {
             return OpenHeader {
@@ -177,7 +160,10 @@ impl OpenHeader {
         self.timestamp = a;
     }
     pub fn set_timestamp_now(&mut self, but_later_than: u64) {
-        self.timestamp = cmp::max(get_time().sec as u64, but_later_than + 1);
+        self.timestamp = cmp::max(
+            OffsetDateTime::now_utc().unix_timestamp() as u64,
+            but_later_than + 1,
+        );
     }
     pub fn set_number(&mut self, a: BlockNumber) {
         self.number = a;
@@ -302,7 +288,10 @@ impl Header {
         self.new_dirty();
     }
     pub fn set_timestamp_now(&mut self, but_later_than: u64) {
-        self.timestamp = cmp::max(get_time().sec as u64, but_later_than + 1);
+        self.timestamp = cmp::max(
+            OffsetDateTime::now_utc().unix_timestamp() as u64,
+            but_later_than + 1,
+        );
         self.new_dirty();
     }
     pub fn set_number(&mut self, a: BlockNumber) {
@@ -388,7 +377,7 @@ impl Header {
         executed_header.set_transactions_root(self.transactions_root.0.to_vec());
         executed_header.set_receipts_root(self.receipts_root.0.to_vec());
         executed_header.set_log_bloom(self.log_bloom.0.to_vec());
-        executed_header.set_quota_used(u64::from(self.quota_used));
+        executed_header.set_quota_used(self.quota_used.as_u64());
         executed_header.set_quota_limit(self.quota_limit.low_u64());
         executed_header.set_proposer(self.proposer.0.to_vec());
         executed_header
@@ -406,7 +395,7 @@ impl Header {
                 version: open_header.version,
                 parent_hash: H256::from_slice(info.get_header().get_prevhash()),
             },
-            log_bloom: Bloom::from(info.get_header().get_log_bloom()),
+            log_bloom: Bloom::from_slice(info.get_header().get_log_bloom()),
             quota_used: U256::from(info.get_header().get_quota_used()),
             receipts_root: H256::from_slice(info.get_header().get_receipts_root()),
             state_root: H256::from_slice(info.get_header().get_state_root()),
@@ -430,7 +419,7 @@ impl Decodable for Header {
                 transactions_root: r.val_at(2)?,
                 number: r.val_at(5)?,
                 quota_limit: r.val_at(6)?,
-                timestamp: cmp::min(r.val_at::<U256>(8)?, u64::max_value().into()).as_u64(),
+                timestamp: cmp::min(r.val_at::<U256>(8)?, u64::MAX.into()).as_u64(),
                 version: r.val_at(9)?,
                 proof: r.val_at(10)?,
                 proposer: r.val_at(11)?,

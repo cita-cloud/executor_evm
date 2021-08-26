@@ -22,7 +22,7 @@ edition = "2018"
 [dependencies]
 log = "0.4.14"
 log4rs = { version = "1.0", features = ["gzip"] }
-dotenv = "0.13.0"
+dotenv = "0.15.0"
 cita-logger = "0.1.1"
 tonic = "0.5"
 git-version = "0.3"
@@ -30,29 +30,29 @@ prost = "0.8"
 cita-database = "0.1"
 tokio = { version = "1.3", features = ["full"] }
 clap = "3.0.0-beta.2"
-crossbeam-channel = "0.4.2"
+crossbeam-channel = "0.5.1"
 hex = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 serde_json = "1.0"
 bloomchain = "0.2"
 lazy_static = "1.4.0"
-time = "0.1"
-rustc-hex = "1.0"
+time = "0.3"
+rustc-hex = "2.0"
 cita_trie = "2.0.0"
 byteorder = { version = "1", default-features = false }
-bincode = "0.8.0"
+bincode = "1.3.3"
 rustc-serialize = "0.3"
 lru-cache = "0.1.1"
 rand = "0.8"
 transient-hashmap = "0.4.0"
-ethabi = "4.2.0"
+ethabi = "14.1.0"
 largest-remainder-method = "0.1"
-parking_lot = "0.8"
-ethbloom = "0.6"
-sha3 = { version="0.8", optional=true }
-tiny-keccak = { version="1.4", optional=true }
-hashbrown = { version = "0.3", features = ["rayon"] }
+parking_lot = "0.11"
+ethbloom = "0.11"
+sha3 = { version="0.9", optional=true }
+tiny-keccak = { version="2.0.0", optional=true }
+hashbrown = { version = "0.11", features = ["rayon"] }
 hasher = { version="0.1" }
 ethereum-types = "0.12"
 backtrace = "0.3"
@@ -63,10 +63,9 @@ cita-crypto = "0.1"
 rlp = "0.5"
 util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
-jsonrpc-types = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
-libproto = { git = "https://github.com/citahub/cita-common.git", branch = "develop" }
+libproto = { git = "https://github.com/cita-cloud/libproto" }
 
-cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto", branch = "v6.0.0" }
+cita_cloud_proto = "=6.0.0"
 
 [dependencies.cita-vm]
 git = "https://github.com/citahub/cita-vm.git"
@@ -75,7 +74,7 @@ default-features = false
 features = ["sha3hash"]
 
 [dev-dependencies]
-cpuprofiler = "0.0.3"
+cpuprofiler = "0.0.4"
 tempdir = "0.3.7"
 
 [features]

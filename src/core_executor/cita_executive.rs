@@ -323,9 +323,14 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
             if balance512 < total_cost {
                 return Err(ExecutionError::NotEnoughBalance);
             }
+
+            let inner = gas_cost.0;
+            let mut gas_arr = [0; 4];
+            gas_arr.copy_from_slice(&inner[..4]);
+
             self.state_provider
                 .borrow_mut()
-                .sub_balance(&sender, U256::from(gas_cost))?;
+                .sub_balance(&sender, U256(gas_arr))?;
         }
         Ok(())
     }
@@ -334,7 +339,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         if data.len() <= 20 {
             return false;
         }
-        let account = H160::from(&data[0..20]);
+        let account = H160::from_slice(data);
         let abi = &data[20..];
 
         let account_exist = self
@@ -782,11 +787,11 @@ mod tests {
     use crate::types::{Address, H256, U256};
     use cita_crypto::{CreateKey, KeyPair};
     use cita_vm::state::StateObjectInfo;
+    use ethereum_types::BigEndianHash;
     use rustc_hex::FromHex;
     use std::cell::RefCell;
     use std::str::FromStr;
     use std::sync::Arc;
-    use ethereum_types::BigEndianHash;
 
     #[cfg(feature = "sha3hash")]
     pub fn contract_address(address: &Address, nonce: &U256) -> Address {

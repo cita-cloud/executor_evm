@@ -1,6 +1,6 @@
 use super::Bytes;
 use crate::types::{Address, H256};
-use rlp::{self, Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{self, Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Default, Debug, Clone)]
 pub struct StateProof {
@@ -21,7 +21,7 @@ impl Encodable for StateProof {
 }
 
 impl Decodable for StateProof {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         Ok(StateProof {
             address: rlp.val_at(0)?,
             account_proof: rlp.list_at(1)?,

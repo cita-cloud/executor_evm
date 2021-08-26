@@ -24,9 +24,8 @@ use crate::types::errors::ReceiptError;
 use crate::types::log::{LocalizedLog, Log};
 use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_cloud_proto::evm::Receipt as CloudReceipt;
-use jsonrpc_types::rpc_types::Receipt as RpcReceipt;
 use libproto::executor::{Receipt as ProtoReceipt, ReceiptErrorWithOption, StateRoot};
-use rlp::{Decodable, DecoderError, Encodable, RlpStream, UntrustedRlp};
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 #[derive(Serialize, Deserialize, Default, Debug, Clone, PartialEq, Eq)]
 pub struct Receipt {
@@ -204,7 +203,7 @@ impl Encodable for Receipt {
 }
 
 impl Decodable for Receipt {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         if rlp.item_count()? == 6 {
             Ok(Receipt {
                 state_root: None,

@@ -62,7 +62,7 @@ impl Default for Action {
 }
 
 impl Decodable for Action {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         if rlp.is_empty() {
             Ok(Action::Create)
         } else {
@@ -112,7 +112,7 @@ impl Default for CryptoType {
 }
 
 impl Decodable for CryptoType {
-    fn decode(rlp: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(rlp: &Rlp) -> Result<Self, DecoderError> {
         match rlp.as_val::<u8>()? {
             0 => Ok(CryptoType::Default),
             1 => Ok(CryptoType::Reserved),
@@ -165,7 +165,7 @@ pub struct Transaction {
 }
 
 impl Decodable for Transaction {
-    fn decode(d: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(d: &Rlp) -> Result<Self, DecoderError> {
         if d.item_count()? != 9 {
             return Err(DecoderError::RlpIncorrectListLen);
         }
@@ -317,7 +317,9 @@ impl Transaction {
                 Action::Create => pt.clear_to(),
                 Action::Call(ref to) => pt.set_to_v1(to.0.to_vec()),
                 Action::Store => pt.set_to_v1(Address::from_str(STORE_ADDRESS).unwrap().0.to_vec()),
-                Action::AbiStore => pt.set_to_v1(Address::from_str(ABI_ADDRESS).unwrap().0.to_vec()),
+                Action::AbiStore => {
+                    pt.set_to_v1(Address::from_str(ABI_ADDRESS).unwrap().0.to_vec())
+                }
                 Action::AmendData => {
                     pt.set_to_v1(Address::from_str(AMEND_ADDRESS).unwrap().0.to_vec())
                 }
@@ -355,7 +357,7 @@ impl DerefMut for UnverifiedTransaction {
 }
 
 impl Decodable for UnverifiedTransaction {
-    fn decode(d: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(d: &Rlp) -> Result<Self, DecoderError> {
         if d.item_count()? != 4 {
             return Err(DecoderError::RlpIncorrectListLen);
         }
@@ -432,7 +434,7 @@ pub struct SignedTransaction {
 
 /// RLP dose not support struct nesting well
 impl Decodable for SignedTransaction {
-    fn decode(d: &UntrustedRlp) -> Result<Self, DecoderError> {
+    fn decode(d: &Rlp) -> Result<Self, DecoderError> {
         if d.item_count()? != 14 {
             return Err(DecoderError::RlpIncorrectListLen);
         }
@@ -604,7 +606,7 @@ mod tests {
         let mut stx = SignedTransaction::default();
         stx.data = vec![1; 200];
         let stx_rlp = rlp::encode(&stx);
-        let stx: SignedTransaction = rlp::decode(&stx_rlp);
+        let stx: SignedTransaction = rlp::decode(&stx_rlp).unwrap();
         let stx_encoded = rlp::encode(&stx).into_vec();
 
         assert_eq!(stx_rlp, stx_encoded);
@@ -618,7 +620,7 @@ mod tests {
         let stx_proto = stx.protobuf();
         let stx = SignedTransaction::create(&stx_proto).unwrap();
         let stx_encoded = rlp::encode(&stx).into_vec();
-        let stx: SignedTransaction = rlp::decode(&stx_encoded);
+        let stx: SignedTransaction = rlp::decode(&stx_encoded).unwrap();
         let stx_encoded = rlp::encode(&stx).into_vec();
 
         assert_eq!(stx_rlp, stx_encoded);

@@ -65,7 +65,10 @@ where
         }
     }
 
-    fn insert(&self, key: Vec<u8>, value: Vec<u8>) -> Result<(), Self::Error> {
+    fn insert(&self, mut key: Vec<u8>, value: Vec<u8>) -> Result<(), Self::Error> {
+        if key.len() != 32 {
+            key.resize(32, 0)
+        }
         if H256::from_slice(key.as_slice()) == HASH_NULL_RLP {
             return Ok(());
         }

@@ -65,7 +65,7 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 
-cita_cloud_proto = "=6.0.0"
+cita_cloud_proto = "=6.2.0"
 
 [dependencies.cita-vm]
 git = "https://github.com/citahub/cita-vm.git"

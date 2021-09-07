@@ -1,3 +1,4 @@
+
 name: Build Docker Images
 
 on:
@@ -36,11 +37,10 @@ jobs:
           if [ "$tag" = 'master' ] || [ "$tag" = 'main' ]; then
               tag=latest
           fi
-          
+
           docker buildx build \
               --output "type=image,push=true" \
               --file "Dockerfile" \
               --tag "${image}:${tag}" \
-              --platform "linux/amd64" \
+              --platform "linux/amd64,linux/arm64" \
               "."
-

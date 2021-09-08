@@ -8,12 +8,6 @@ debug:
 release:
 	$(CARGO) build --all  --release
 
-aarch64_debug:
-	$(CARGO) build --all --target aarch64-unknown-linux-gnu
-
-aarch64_release:
-	$(CARGO) build --all  --release --target aarch64-unknown-linux-gnu
-
 test:
 	RUST_BACKTRACE=full $(CARGO) test --all 2>&1
 

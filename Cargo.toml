@@ -67,8 +67,7 @@ libproto = { git = "https://github.com/cita-cloud/libproto" }
 
 cloud-util = { git = "https://github.com/cita-cloud/cloud-util" }
 cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto", branch = "wip-7.0.0-dev" }
-#status_code = { git = "https://github.com/cita-cloud/status_code" }
-status_code = { path = "../../status_code" }
+status_code = { git = "https://github.com/cita-cloud/status_code" }
 
 [dependencies.cita-vm]
 version = "0.2"

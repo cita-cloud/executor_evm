@@ -18,7 +18,7 @@ use cita_vm::{
     evm::{self, InterpreterConf, InterpreterParams},
     native,
     state::State,
-    Error as VMError,
+    Error as VmError,
 };
 use std::cell::RefCell;
 use std::sync::Arc;
@@ -29,7 +29,7 @@ pub fn call_pure<B: DB + 'static>(
     state_provider: Arc<RefCell<State<B>>>,
     store: Arc<RefCell<VMSubState>>,
     request: &InterpreterParams,
-) -> Result<evm::InterpreterResult, VMError> {
+) -> Result<evm::InterpreterResult, VmError> {
     let evm_context = store.borrow().evm_context.clone();
     let evm_cfg = store.borrow().evm_cfg.clone();
     let evm_params = request.clone();
@@ -49,7 +49,7 @@ pub fn call_pure<B: DB + 'static>(
         let c = native::get(request.contract.code_address);
         let gas = c.required_gas(&request.input);
         if request.gas_limit < gas {
-            return Err(VMError::Evm(evm::Error::OutOfGas));
+            return Err(VmError::Evm(evm::Error::OutOfGas));
         }
         let r = c.run(&request.input);
         match r {
@@ -76,7 +76,5 @@ pub fn call_pure<B: DB + 'static>(
 
 /// Returns the default interpreter configs for Constantinople.
 pub fn get_interpreter_conf() -> InterpreterConf {
-    let mut evm_cfg = InterpreterConf::default();
-    evm_cfg.eip1283 = false;
-    evm_cfg
+    InterpreterConf { eip1283: false, ..Default::default() }
 }

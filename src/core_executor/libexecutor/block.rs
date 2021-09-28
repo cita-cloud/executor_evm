@@ -32,7 +32,7 @@ use crate::types::receipt::Receipt;
 use crate::types::transaction::SignedTransaction;
 use crate::types::{Address, Bloom as LogBloom, H256, U256};
 use cita_vm::{
-    evm::Error as EVMError, state::State as CitaState, state::StateObjectInfo, Error as VMError,
+    evm::Error as EVMError, state::State as CitaState, state::StateObjectInfo, Error as VmError,
 };
 use hashable::Hashable;
 use libproto::executor::{ExecutedInfo, ReceiptWithOption};
@@ -138,25 +138,25 @@ impl ExecutedBlock {
                     // FIXME: hasn't handle some errors
                     let receipt_error = ret.exception.map(|error| -> ReceiptError {
                         match error {
-                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfGas)) => {
+                            ExecutedException::Vm(VmError::Evm(EVMError::OutOfGas)) => {
                                 ReceiptError::OutOfQuota
                             }
-                            ExecutedException::Vm(VMError::Evm(
+                            ExecutedException::Vm(VmError::Evm(
                                 EVMError::InvalidJumpDestination,
                             )) => ReceiptError::BadJumpDestination,
-                            ExecutedException::Vm(VMError::Evm(EVMError::InvalidOpcode)) => {
+                            ExecutedException::Vm(VmError::Evm(EVMError::InvalidOpcode)) => {
                                 ReceiptError::BadInstruction
                             }
-                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfStack)) => {
+                            ExecutedException::Vm(VmError::Evm(EVMError::OutOfStack)) => {
                                 ReceiptError::OutOfStack
                             }
-                            ExecutedException::Vm(VMError::Evm(
+                            ExecutedException::Vm(VmError::Evm(
                                 EVMError::MutableCallInStaticContext,
                             )) => ReceiptError::MutableCallInStaticContext,
-                            ExecutedException::Vm(VMError::Evm(EVMError::StackUnderflow)) => {
+                            ExecutedException::Vm(VmError::Evm(EVMError::StackUnderflow)) => {
                                 ReceiptError::StackUnderflow
                             }
-                            ExecutedException::Vm(VMError::Evm(EVMError::OutOfBounds)) => {
+                            ExecutedException::Vm(VmError::Evm(EVMError::OutOfBounds)) => {
                                 ReceiptError::OutOfBounds
                             }
                             ExecutedException::Reverted => ReceiptError::Reverted,
@@ -276,7 +276,7 @@ impl ExecutedBlock {
         {
             error!("Sub balance failed. tx_fee: {:?}", real_fee);
         } else {
-            let _ = self.state.borrow_mut().add_balance(&coin_base, real_fee);
+            let _ = self.state.borrow_mut().add_balance(coin_base, real_fee);
         }
         if real_fee == sender_balance {
             sender_balance.checked_div(quota_price).unwrap()
@@ -311,7 +311,7 @@ impl ExecutedBlock {
             .clone()
             .into_iter()
             .fold(LogBloom::zero(), |mut b, r| {
-                b = b | r.log_bloom;
+                b |= r.log_bloom;
                 b
             });
 

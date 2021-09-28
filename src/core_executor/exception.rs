@@ -16,12 +16,12 @@ use std::error::Error;
 use std::fmt;
 
 use crate::types::errors::NativeError;
-use cita_vm::Error as VMError;
+use cita_vm::Error as VmError;
 
-// There is not reverted expcetion in VMError, so handle this in ExecutedException.
+// There is not reverted expcetion in VmError, so handle this in ExecutedException.
 #[derive(Debug)]
 pub enum ExecutedException {
-    Vm(VMError),
+    Vm(VmError),
     NativeContract(NativeError),
     Reverted,
 }
@@ -41,8 +41,8 @@ impl fmt::Display for ExecutedException {
     }
 }
 
-impl From<VMError> for ExecutedException {
-    fn from(err: VMError) -> Self {
+impl From<VmError> for ExecutedException {
+    fn from(err: VmError) -> Self {
         ExecutedException::Vm(err)
     }
 }

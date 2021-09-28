@@ -21,7 +21,7 @@ use cita_vm::{
         self, Context as EVMContext, Contract, InterpreterParams, InterpreterResult, Log as EVMLog,
     },
     state::{State, StateObjectInfo},
-    summary, Error as VMError,
+    summary, Error as VmError,
 };
 use rlp::RlpStream;
 use std::cell::RefCell;
@@ -79,7 +79,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
             //        required: U256,
             //        got: U256,
             //    }
-            // Need to change VMError defined in cita-vm.
+            // Need to change VmError defined in cita-vm.
             return Err(ExecutionError::NotEnoughBaseGas);
         }
 
@@ -91,9 +91,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         self.prepaid(t.sender(), t.gas, t.gas_price, t.value)?;
         let init_gas = t.gas - U256::from(base_gas_required);
 
-        let mut store = VMSubState::default();
-        store.evm_context = build_evm_context(&self.context.clone());
-        store.evm_cfg = get_interpreter_conf();
+        let store = VMSubState { evm_context: build_evm_context(&self.context.clone()), evm_cfg: get_interpreter_conf(), ..Default::default() };
         let store = Arc::new(RefCell::new(store));
 
         let result = match t.action {
@@ -169,7 +167,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
 
     fn finalize(
         &mut self,
-        result: Result<InterpreterResult, VMError>,
+        result: Result<InterpreterResult, VmError>,
         store: Arc<RefCell<VMSubState>>,
         gas_limit: U256,
         sender: Address,
@@ -314,7 +312,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         value: U256,
     ) -> Result<(), ExecutionError> {
         if self.payment_required() {
-            let balance = self.state_provider.borrow_mut().balance(&sender)?;
+            let balance = self.state_provider.borrow_mut().balance(sender)?;
             let gas_cost = gas.full_mul(gas_price);
             let total_cost = U512::from(value) + gas_cost;
 
@@ -330,7 +328,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
 
             self.state_provider
                 .borrow_mut()
-                .sub_balance(&sender, U256(gas_arr))?;
+                .sub_balance(sender, U256(gas_arr))?;
         }
         Ok(())
     }
@@ -365,7 +363,7 @@ pub fn create<B: DB + 'static>(
     store: Arc<RefCell<VMSubState>>,
     request: &InterpreterParams,
     create_kind: CreateKind,
-) -> Result<evm::InterpreterResult, VMError> {
+) -> Result<evm::InterpreterResult, VmError> {
     debug!("create request={:?}", request);
     let address = match create_kind {
         CreateKind::FromAddressAndNonce => {
@@ -384,7 +382,7 @@ pub fn create<B: DB + 'static>(
     debug!("create address={:?}", address);
     // Ensure there's no existing contract already at the designated address
     if !can_create(state_provider.clone(), &address)? {
-        return Err(VMError::ContractAlreadyExist);
+        return Err(VmError::ContractAlreadyExist);
     }
     // Make a checkpoint here
     state_provider.borrow_mut().checkpoint();
@@ -421,7 +419,7 @@ pub fn create<B: DB + 'static>(
             // Ensure code size
             if output.len() as u64 > MAX_CREATE_CODE_SIZE {
                 state_provider.borrow_mut().revert_checkpoint();
-                return Err(VMError::ExccedMaxCodeSize);
+                return Err(VmError::ExccedMaxCodeSize);
             }
             let tx_gas_schedule = TxGasSchedule::default();
             // Pay every byte returnd from CREATE
@@ -429,7 +427,7 @@ pub fn create<B: DB + 'static>(
                 tx_gas_schedule.create_data_gas as u64 * output.len() as u64;
             if gas_left < gas_code_deposit {
                 state_provider.borrow_mut().revert_checkpoint();
-                return Err(VMError::Evm(evm::Error::OutOfGas));
+                return Err(VmError::Evm(evm::Error::OutOfGas));
             }
             let gas_left = gas_left - gas_code_deposit;
             state_provider
@@ -465,7 +463,7 @@ pub fn call<B: DB + 'static>(
     state_provider: Arc<RefCell<State<B>>>,
     store: Arc<RefCell<VMSubState>>,
     request: &InterpreterParams,
-) -> Result<evm::InterpreterResult, VMError> {
+) -> Result<evm::InterpreterResult, VmError> {
     // Here not need check twice,becauce prepay is subed ,but need think call_static
     /*if !request.disable_transfer_value && state_provider.borrow_mut().balance(&request.sender)? < request.value {
         return Err(err::Error::NotEnoughBalance);
@@ -531,7 +529,7 @@ fn liquidtion<B: DB + 'static>(
     gas_price: U256,
     gas_limit: u64,
     gas_left: u64,
-) -> Result<(), VMError> {
+) -> Result<(), VmError> {
     trace!(
         "gas_price: {:?}, gas limit:{:?}, gas left: {:?}",
         gas_price,
@@ -612,9 +610,9 @@ pub fn create_address_from_salt_and_code_hash(
 pub fn can_create<B: DB + 'static>(
     state_provider: Arc<RefCell<State<B>>>,
     address: &Address,
-) -> Result<bool, VMError> {
-    let a = state_provider.borrow_mut().nonce(&address)?;
-    let b = state_provider.borrow_mut().code(&address)?;
+) -> Result<bool, VmError> {
+    let a = state_provider.borrow_mut().nonce(address)?;
+    let b = state_provider.borrow_mut().code(address)?;
     Ok(a.is_zero() && b.is_empty())
 }
 
@@ -658,9 +656,7 @@ pub fn build_vm_exec_params<B: DB + 'static>(
     params: &ExecutiveParams,
     state_provider: Arc<RefCell<State<B>>>,
 ) -> VmExecParams {
-    let mut vm_exec_params = VmExecParams::default();
-    vm_exec_params.origin = params.sender;
-    vm_exec_params.sender = params.sender;
+    let mut vm_exec_params = VmExecParams { origin: params.sender, sender: params.sender, ..Default::default() };
     if let Some(data) = params.to_address {
         vm_exec_params.to_address = data;
         vm_exec_params.storage_address = data;
@@ -725,27 +721,27 @@ impl From<InterpreterParams> for VmExecParams {
     }
 }
 
-impl Into<InterpreterParams> for VmExecParams {
-    fn into(self) -> InterpreterParams {
-        InterpreterParams {
-            origin: self.origin,
-            address: self.storage_address,
+impl From<VmExecParams> for InterpreterParams{
+    fn from(params: VmExecParams) -> Self {
+        Self {
+            origin: params.origin,
+            address: params.storage_address,
             contract: Contract {
-                code_address: self.code_address,
-                code_data: self.code_data,
+                code_address: params.code_address,
+                code_data: params.code_data,
             },
-            sender: self.sender,
-            receiver: self.to_address,
-            gas_limit: self.gas,
-            gas_price: self.gas_price,
-            value: self.value,
-            nonce: self.nonce,
-            input: self.data.clone(),
-            read_only: self.read_only,
-            extra: self.extra,
-            depth: self.depth,
+            sender: params.sender,
+            receiver: params.to_address,
+            gas_limit: params.gas,
+            gas_price: params.gas_price,
+            value: params.value,
+            nonce: params.nonce,
+            input: params.data.clone(),
+            read_only: params.read_only,
+            extra: params.extra,
+            depth: params.depth,
             is_create: false,
-            disable_transfer_value: self.disable_transfer_value,
+            disable_transfer_value: params.disable_transfer_value,
         }
     }
 }

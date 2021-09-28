@@ -243,33 +243,33 @@ pub struct RichReceipt {
     pub error: Option<ReceiptError>,
 }
 
-impl Into<CloudReceipt> for RichReceipt {
-    fn into(self) -> CloudReceipt {
+impl From<RichReceipt> for CloudReceipt {
+    fn from(receipt: RichReceipt) -> Self {
         let mut cumulative_quota_used = [0; 32];
-        self.cumulative_quota_used
+        receipt.cumulative_quota_used
             .to_big_endian(&mut cumulative_quota_used);
         let mut quota_used = [0; 32];
-        self.quota_used.to_big_endian(&mut quota_used);
-        let contract_address = match self.contract_address {
+        receipt.quota_used.to_big_endian(&mut quota_used);
+        let contract_address = match receipt.contract_address {
             Some(address) => address.0.to_vec(),
             None => vec![0; 20],
         };
-        let state_root = match self.state_root {
+        let state_root = match receipt.state_root {
             Some(root) => root.0.to_vec(),
             None => vec![0; 32],
         };
-        CloudReceipt {
-            transaction_hash: self.transaction_hash.0.to_vec(),
-            transaction_index: self.transaction_index as u64,
-            block_hash: self.block_hash.0.to_vec(),
-            block_number: self.block_number,
+        Self {
+            transaction_hash: receipt.transaction_hash.0.to_vec(),
+            transaction_index: receipt.transaction_index as u64,
+            block_hash: receipt.block_hash.0.to_vec(),
+            block_number: receipt.block_number,
             cumulative_quota_used: cumulative_quota_used.to_vec(),
             quota_used: quota_used.to_vec(),
             contract_address,
-            logs: self.logs.into_iter().map(Into::into).collect(),
+            logs: receipt.logs.into_iter().map(Into::into).collect(),
             state_root,
-            logs_bloom: self.log_bloom.0.to_vec(),
-            error_message: self
+            logs_bloom: receipt.log_bloom.0.to_vec(),
+            error_message: receipt
                 .error
                 .map(ReceiptError::description)
                 .unwrap_or_else(|| "".to_string()),

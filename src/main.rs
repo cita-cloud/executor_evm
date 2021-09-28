@@ -112,7 +112,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     result: ExecutedResult::new(),
                                 });
                             } else {
-                                let mut close_block = executor.into_fsm(open_block.clone());
+                                let mut close_block = executor.before_fsm(open_block.clone());
                                 let executed_result = executor.grow(&close_block);
                                 close_block.clear_cache();
                                 executor.core_chain.set_db_result(&executed_result, &open_block);

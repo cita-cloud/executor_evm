@@ -26,6 +26,7 @@ extern crate serde_json;
 extern crate crossbeam_channel;
 extern crate libproto;
 
+use crate::executor_server::ExecutedFinal;
 use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
@@ -36,6 +37,8 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
+use libproto::ExecutedResult;
+use status_code::StatusCode;
 use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
@@ -102,11 +105,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let mut close_block = executor.into_fsm(open_block.clone());
-                            let executed_result = executor.grow(&close_block);
-                            close_block.clear_cache();
-                            executor.core_chain.set_db_result(&executed_result, &open_block);
-                            let _ = exec_resp_sender.send(executed_result);
+                            // prevent re-enter
+                            if executor.block_header_by_height(open_block.number()).is_some() {
+                                let _ = exec_resp_sender.send(ExecutedFinal{
+                                    status: StatusCode::ReenterBlock,
+                                    result: ExecutedResult::new(),
+                                });
+                            } else {
+                                let mut close_block = executor.into_fsm(open_block.clone());
+                                let executed_result = executor.grow(&close_block);
+                                close_block.clear_cache();
+                                executor.core_chain.set_db_result(&executed_result, &open_block);
+                                let _ = exec_resp_sender.send(ExecutedFinal{
+                                    status: StatusCode::Success,
+                                    result: executed_result,
+                                });
+                            }
+
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }

@@ -76,5 +76,8 @@ pub fn call_pure<B: DB + 'static>(
 
 /// Returns the default interpreter configs for Constantinople.
 pub fn get_interpreter_conf() -> InterpreterConf {
-    InterpreterConf { eip1283: false, ..Default::default() }
+    InterpreterConf {
+        eip1283: false,
+        ..Default::default()
+    }
 }

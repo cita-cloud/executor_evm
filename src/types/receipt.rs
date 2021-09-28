@@ -246,7 +246,8 @@ pub struct RichReceipt {
 impl From<RichReceipt> for CloudReceipt {
     fn from(receipt: RichReceipt) -> Self {
         let mut cumulative_quota_used = [0; 32];
-        receipt.cumulative_quota_used
+        receipt
+            .cumulative_quota_used
             .to_big_endian(&mut cumulative_quota_used);
         let mut quota_used = [0; 32];
         receipt.quota_used.to_big_endian(&mut quota_used);

@@ -91,7 +91,11 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         self.prepaid(t.sender(), t.gas, t.gas_price, t.value)?;
         let init_gas = t.gas - U256::from(base_gas_required);
 
-        let store = VMSubState { evm_context: build_evm_context(&self.context.clone()), evm_cfg: get_interpreter_conf(), ..Default::default() };
+        let store = VMSubState {
+            evm_context: build_evm_context(&self.context.clone()),
+            evm_cfg: get_interpreter_conf(),
+            ..Default::default()
+        };
         let store = Arc::new(RefCell::new(store));
 
         let result = match t.action {
@@ -656,7 +660,11 @@ pub fn build_vm_exec_params<B: DB + 'static>(
     params: &ExecutiveParams,
     state_provider: Arc<RefCell<State<B>>>,
 ) -> VmExecParams {
-    let mut vm_exec_params = VmExecParams { origin: params.sender, sender: params.sender, ..Default::default() };
+    let mut vm_exec_params = VmExecParams {
+        origin: params.sender,
+        sender: params.sender,
+        ..Default::default()
+    };
     if let Some(data) = params.to_address {
         vm_exec_params.to_address = data;
         vm_exec_params.storage_address = data;
@@ -721,7 +729,7 @@ impl From<InterpreterParams> for VmExecParams {
     }
 }
 
-impl From<VmExecParams> for InterpreterParams{
+impl From<VmExecParams> for InterpreterParams {
     fn from(params: VmExecParams) -> Self {
         Self {
             origin: params.origin,

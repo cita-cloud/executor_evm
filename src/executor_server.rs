@@ -6,7 +6,7 @@ use crate::types::Bytes;
 use crate::types::{Address, H256};
 use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::blockchain::Block as CloudBlock;
-use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashRespond};
+use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashResponse};
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
@@ -40,7 +40,7 @@ impl ExecutorService for ExecutorServer {
     async fn exec(
         &self,
         request: Request<CloudBlock>,
-    ) -> std::result::Result<Response<HashRespond>, Status> {
+    ) -> std::result::Result<Response<HashResponse>, Status> {
         let block = request.into_inner();
         debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
@@ -61,7 +61,7 @@ impl ExecutorService for ExecutorServer {
                         hex::encode(&utxo.transaction_hash)
                     ),
                     None => {
-                        return Ok(Response::new(HashRespond {
+                        return Ok(Response::new(HashResponse {
                             status: Some(StatusCode::NoneBlockBody.into()),
                             hash: None,
                         }));
@@ -72,7 +72,7 @@ impl ExecutorService for ExecutorServer {
 
         if self.exec_req_sender.send(open_blcok).is_err() {
             warn!("exec: sending on a disconnected channel");
-            return Ok(Response::new(HashRespond {
+            return Ok(Response::new(HashResponse {
                 status: Some(StatusCode::InternalChannelDisconnected.into()),
                 hash: None,
             }));
@@ -88,14 +88,14 @@ impl ExecutorService for ExecutorServer {
                         header.get_height(),
                         hex::encode(state_root)
                     );
-                    Ok(Response::new(HashRespond {
+                    Ok(Response::new(HashResponse {
                         status: Some(StatusCode::Success.into()),
                         hash: Some(CloudHash {
                             hash: state_root.to_vec(),
                         }),
                     }))
                 } else {
-                    Ok(Response::new(HashRespond {
+                    Ok(Response::new(HashResponse {
                         status: Some(executed_final.status.into()),
                         hash: None,
                     }))
@@ -103,7 +103,7 @@ impl ExecutorService for ExecutorServer {
             }
             Err(recv_error) => {
                 warn!("exec: recv error: {}", recv_error.to_string());
-                Ok(Response::new(HashRespond {
+                Ok(Response::new(HashResponse {
                     status: Some(StatusCode::InternalChannelDisconnected.into()),
                     hash: None,
                 }))

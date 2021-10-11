@@ -101,7 +101,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let eth_compatibility = opts.is_present("eth-compatibility") | config.eth_compatibility;
 
-        info!("grpc port of this service: {}", grpc_port);
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
         let mut executor = Executor::init(config.db_path, eth_compatibility);

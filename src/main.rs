@@ -117,8 +117,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
+                            let current_block = executor.block_header_by_height(open_block.number());
                             // prevent re-enter
-                            if executor.block_header_by_height(open_block.number()).is_some() {
+                            if current_block.is_some() && current_block.unwrap().timestamp() != 0 {
                                 let _ = exec_resp_sender.send(ExecutedFinal{
                                     status: StatusCode::ReenterBlock,
                                     result: ExecutedResult::new(),

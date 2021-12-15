@@ -341,7 +341,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
         if data.len() <= 20 {
             return false;
         }
-        let account = H160::from_slice(data);
+        let account = H160::from_slice(&data[..20]);
         let abi = &data[20..];
 
         let account_exist = self

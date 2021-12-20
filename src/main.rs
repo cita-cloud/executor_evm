@@ -26,6 +26,8 @@ extern crate serde_json;
 extern crate crossbeam_channel;
 extern crate libproto;
 
+use crate::config::ExecutorConfig;
+use crate::executor_server::ExecutedFinal;
 use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
@@ -36,6 +38,8 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
+use libproto::ExecutedResult;
+use status_code::StatusCode;
 use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
@@ -69,9 +73,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 )
                 .arg(
                     Arg::new("eth-compatibility")
-                        .short('c')
+                        .short('e')
                         .long("compatibility")
                         .about("Sets eth compatibility, default false"),
+                )
+                .arg(
+                    Arg::new("config")
+                        .short('c')
+                        .long("config")
+                        .about("config file path"),
                 ),
         )
         .get_matches();
@@ -80,15 +90,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("git version: {}", GIT_VERSION);
         println!("homepage: {}", GIT_HOMEPAGE);
     } else if let Some(opts) = matches.subcommand_matches("run") {
-        log4rs::init_file("executor-log4rs.yaml", Default::default()).unwrap();
-        let grpc_port = opts.value_of("grpc-port").unwrap_or("50002");
-        let eth_compatibility = opts.is_present("eth-compatibility");
+        let config = ExecutorConfig::new(opts.value_of("config").unwrap_or("config.toml"));
 
+        // init log4rs
+        log4rs::init_file(&config.log_file, Default::default()).unwrap();
+
+        let config_port = config.executor_port.to_string();
+        let grpc_port = opts.value_of("grpc-port").unwrap_or(&config_port);
         info!("grpc port of this service: {}", grpc_port);
+
+        let eth_compatibility = opts.is_present("eth-compatibility") | config.eth_compatibility;
+
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
-        let data_path = String::from("./data");
-        let mut executor = Executor::init(data_path, eth_compatibility);
+        let mut executor = Executor::init(config.db_path, eth_compatibility);
 
         let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();
         let (exec_resp_sender, exec_resp_receiver) = crossbeam_channel::unbounded();
@@ -102,11 +117,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let mut close_block = executor.into_fsm(open_block.clone());
-                            let executed_result = executor.grow(&close_block);
-                            close_block.clear_cache();
-                            executor.core_chain.set_db_result(&executed_result, &open_block);
-                            let _ = exec_resp_sender.send(executed_result);
+                            let current_block = executor.block_header_by_height(open_block.number());
+                            // prevent re-enter
+                            if current_block.is_some() && current_block.unwrap().timestamp() != 0 {
+                                let _ = exec_resp_sender.send(ExecutedFinal{
+                                    status: StatusCode::ReenterBlock,
+                                    result: ExecutedResult::new(),
+                                });
+                            } else {
+                                let mut close_block = executor.before_fsm(open_block.clone());
+                                let executed_result = executor.grow(&close_block);
+                                close_block.clear_cache();
+                                executor.core_chain.set_db_result(&executed_result, &open_block);
+                                let _ = exec_resp_sender.send(ExecutedFinal{
+                                    status: StatusCode::Success,
+                                    result: executed_result,
+                                });
+                            }
+
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }
@@ -162,6 +190,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+mod config;
 pub mod core_chain;
 pub mod core_executor;
 mod executor_server;

@@ -95,23 +95,23 @@ impl Deref for LocalizedLog {
     }
 }
 
-impl Into<CloudLog> for LocalizedLog {
-    fn into(self) -> CloudLog {
-        CloudLog {
-            address: self.log.address.0.to_vec(),
-            topics: self
+impl From<LocalizedLog> for CloudLog {
+    fn from(log: LocalizedLog) -> Self {
+        Self {
+            address: log.log.address.0.to_vec(),
+            topics: log
                 .log
                 .topics
                 .into_iter()
                 .map(|topic| topic.0.to_vec())
                 .collect(),
-            data: self.log.data.to_vec(),
-            block_hash: self.block_hash.0.to_vec(),
-            block_number: self.block_number,
-            transaction_hash: self.transaction_hash.0.to_vec(),
-            transaction_index: self.transaction_index as u64,
-            log_index: self.log_index as u64,
-            transaction_log_index: self.transaction_log_index as u64,
+            data: log.log.data.to_vec(),
+            block_hash: log.block_hash.0.to_vec(),
+            block_number: log.block_number,
+            transaction_hash: log.transaction_hash.0.to_vec(),
+            transaction_index: log.transaction_index as u64,
+            log_index: log.log_index as u64,
+            transaction_log_index: log.transaction_log_index as u64,
         }
     }
 }

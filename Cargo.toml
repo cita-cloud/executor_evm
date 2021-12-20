@@ -14,7 +14,7 @@
 
 [package]
 name = "executor"
-version = "6.1.0"
+version = "6.3.1-alpha.1"
 authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2018"
@@ -29,7 +29,8 @@ git-version = "0.3"
 prost = "0.8"
 cita-database = "0.1"
 tokio = { version = "1.3", features = ["full"] }
-clap = "3.0.0-beta.2"
+clap = "=3.0.0-beta.4"
+clap_derive = "=3.0.0-beta.4"
 crossbeam-channel = "0.5.1"
 hex = "0.4"
 serde = "1.0"
@@ -65,7 +66,9 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 
-cita_cloud_proto = "=6.2.0"
+cloud-util = "0.1"
+cita_cloud_proto = "=6.3.0"
+status_code = { package = "cloud-code", version = "0.1" }
 
 [dependencies.cita-vm]
 version = "0.2"

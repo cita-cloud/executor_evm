@@ -141,7 +141,7 @@ impl DbIndex for Hash2TransactionIndex {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
         result.0[0] = TRANSACTION_INDEX as u8;
-        result.0[1..].clone_from_slice(&self.0.as_bytes());
+        result.0[1..].clone_from_slice(self.0.as_bytes());
         result.0.to_vec()
     }
 }
@@ -152,7 +152,7 @@ impl DbIndex for Hash2BlockReceipts {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
         result.0[0] = BLOCKRECEIPTS_INDEX as u8;
-        result.0[1..].clone_from_slice(&self.0.as_bytes());
+        result.0[1..].clone_from_slice(self.0.as_bytes());
         result.0.to_vec()
     }
 }

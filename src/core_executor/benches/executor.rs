@@ -41,7 +41,7 @@ fn test_block_with_10000_tx(b: &mut Bencher) {
     let block = generate_block(&executor, 10000);
 
     b.iter(|| {
-        executor.into_fsm(block.clone());
+        executor.before_fsm(block.clone());
     });
 }
 
@@ -52,7 +52,7 @@ fn test_block_with_30000_tx(b: &mut Bencher) {
     let block = generate_block(&executor, 30000);
 
     b.iter(|| {
-        executor.into_fsm(block.clone());
+        executor.before_fsm(block.clone());
     });
 }
 
@@ -63,7 +63,7 @@ fn test_block_with_50000_tx(b: &mut Bencher) {
     let block = generate_block(&executor, 50000);
 
     b.iter(|| {
-        executor.into_fsm(block.clone());
+        executor.before_fsm(block.clone());
     });
 }
 
@@ -74,7 +74,7 @@ fn test_block_with_10000_tx_write_db(b: &mut Bencher) {
     let block = generate_block(&executor, 10000);
 
     b.iter(|| {
-        let mut closed_block = executor.into_fsm(block.clone());
+        let mut closed_block = executor.before_fsm(block.clone());
         executor.grow(&closed_block);
         closed_block.clear_cache();
     });

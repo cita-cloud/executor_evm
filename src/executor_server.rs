@@ -6,7 +6,7 @@ use crate::types::Bytes;
 use crate::types::{Address, H256};
 use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::blockchain::Block as CloudBlock;
-use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash};
+use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashResponse};
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
@@ -17,12 +17,18 @@ use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
 use crossbeam_channel::{Receiver, Sender};
+use status_code::StatusCode;
 use tonic::{Code, Request, Response, Status};
+
+pub struct ExecutedFinal {
+    pub status: StatusCode,
+    pub result: ExecutedResult,
+}
 
 #[derive(Clone)]
 pub struct ExecutorServer {
     pub exec_req_sender: Sender<OpenBlock>,
-    pub exec_resp_receiver: Receiver<ExecutedResult>,
+    pub exec_resp_receiver: Receiver<ExecutedFinal>,
     pub call_req_sender: Sender<CloudCallRequest>,
     pub call_resp_receiver: Receiver<Result<Bytes, String>>,
     pub command_req_sender: Sender<Command>,
@@ -34,7 +40,7 @@ impl ExecutorService for ExecutorServer {
     async fn exec(
         &self,
         request: Request<CloudBlock>,
-    ) -> std::result::Result<Response<CloudHash>, Status> {
+    ) -> std::result::Result<Response<HashResponse>, Status> {
         let block = request.into_inner();
         debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
@@ -50,27 +56,58 @@ impl ExecutorService for ExecutorServer {
                         );
                         open_blcok.insert_cloud_tx(utx);
                     }
-                    Some(CloudTx::UtxoTx(uutx)) => info!("block contains unknown tx: `{:?}`", uutx),
-                    None => info!("block contains empty tx"),
+                    Some(CloudTx::UtxoTx(utxo)) => info!(
+                        "block contains utxo(0x{})`",
+                        hex::encode(&utxo.transaction_hash)
+                    ),
+                    None => {
+                        return Ok(Response::new(HashResponse {
+                            status: Some(StatusCode::NoneBlockBody.into()),
+                            hash: None,
+                        }));
+                    }
                 }
             }
         }
 
-        let _ = self.exec_req_sender.send(open_blcok);
+        if self.exec_req_sender.send(open_blcok).is_err() {
+            warn!("exec: sending on a disconnected channel");
+            return Ok(Response::new(HashResponse {
+                status: Some(StatusCode::InternalChannelDisconnected.into()),
+                hash: None,
+            }));
+        }
+
         match self.exec_resp_receiver.recv() {
-            Ok(executed_result) => {
-                let header = executed_result.get_executed_info().get_header();
-                let state_root = header.get_state_root();
-                info!(
-                    "height: {}, state_root: 0x{}",
-                    header.get_height(),
-                    hex::encode(state_root)
-                );
-                Ok(Response::new(CloudHash {
-                    hash: state_root.to_vec(),
+            Ok(executed_final) => {
+                if executed_final.status.is_success().is_ok() {
+                    let header = executed_final.result.get_executed_info().get_header();
+                    let state_root = header.get_state_root();
+                    info!(
+                        "height: {}, state_root: 0x{}",
+                        header.get_height(),
+                        hex::encode(state_root)
+                    );
+                    Ok(Response::new(HashResponse {
+                        status: Some(StatusCode::Success.into()),
+                        hash: Some(CloudHash {
+                            hash: state_root.to_vec(),
+                        }),
+                    }))
+                } else {
+                    Ok(Response::new(HashResponse {
+                        status: Some(executed_final.status.into()),
+                        hash: None,
+                    }))
+                }
+            }
+            Err(recv_error) => {
+                warn!("exec: recv error: {}", recv_error.to_string());
+                Ok(Response::new(HashResponse {
+                    status: Some(StatusCode::InternalChannelDisconnected.into()),
+                    hash: None,
                 }))
             }
-            Err(recv_error) => Err(Status::new(Code::InvalidArgument, recv_error.to_string())),
         }
     }
 

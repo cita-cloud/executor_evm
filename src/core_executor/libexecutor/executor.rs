@@ -398,7 +398,7 @@ mod tests {
                 (0, 1),
                 &privkey,
             );
-            let mut closed_block = executor.into_fsm(block.clone());
+            let mut closed_block = executor.before_fsm(block.clone());
             executor.grow(&closed_block);
             closed_block.clear_cache();
         }
@@ -434,7 +434,7 @@ mod tests {
             (0, 1),
             &privkey,
         );
-        let mut closed_block = executor.into_fsm(block.clone());
+        let mut closed_block = executor.before_fsm(block.clone());
         let closed_block_height = closed_block.number();
         let closed_block_hash = closed_block.hash();
         executor.grow(&closed_block);

@@ -33,14 +33,14 @@ impl From<BloomGroup> for LogBloomGroup {
     }
 }
 
-impl Into<BloomGroup> for LogBloomGroup {
-    fn into(self) -> BloomGroup {
-        let blooms = self
+impl From<LogBloomGroup> for BloomGroup {
+    fn from(log: LogBloomGroup) -> Self {
+        let blooms = log
             .blooms
             .into_iter()
             .map(|x| Bloom::from(Into::<[u8; 256]>::into(x)))
             .collect();
-        BloomGroup { blooms }
+        Self { blooms }
     }
 }
 

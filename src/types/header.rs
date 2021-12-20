@@ -82,6 +82,11 @@ impl Default for OpenHeader {
 impl OpenHeader {
     pub fn from_cloud_protobuf(block: &CloudBlock) -> Self {
         if let Some(header) = &block.header {
+            let mut proposer_bytes = header.proposer.as_slice();
+            if header.height == 0 {
+                proposer_bytes = &proposer_bytes[..20];
+            };
+
             return OpenHeader {
                 parent_hash: H256::from_slice(header.prevhash.as_slice()),
                 timestamp: header.timestamp,
@@ -90,7 +95,7 @@ impl OpenHeader {
                 quota_limit: U256::from(u64::max_value()),
                 proof: ProtoProof::new(),
                 version: block.version,
-                proposer: Address::from_slice(header.proposer.as_slice()),
+                proposer: Address::from_slice(proposer_bytes),
             };
         }
 

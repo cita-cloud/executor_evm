@@ -82,9 +82,9 @@ mod test {
     fn test_encode_and_decode_state_proof() {
         let state_proof = StateProof::default();
 
-        let proof_rlp = rlp::encode(&state_proof).into_vec();
-        let decoded_res: StateProof = rlp::decode(&proof_rlp);
-        let encoded_rlp = rlp::encode(&decoded_res).into_vec();
+        let proof_rlp = rlp::encode(&state_proof).to_vec();
+        let decoded_res: StateProof = rlp::decode(&proof_rlp).unwrap();
+        let encoded_rlp = rlp::encode(&decoded_res).to_vec();
         assert_eq!(proof_rlp, encoded_rlp);
     }
 }

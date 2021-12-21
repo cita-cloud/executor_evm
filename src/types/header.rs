@@ -456,10 +456,10 @@ mod tests {
         // that's rlp of block header created with ethash engine.
         let open_header = OpenHeader::default();
         let header = Header::new(open_header);
-        let header_rlp = rlp::encode(&header).into_vec();
+        let header_rlp = rlp::encode(&header).to_vec();
 
         let header: Header = rlp::decode(&header_rlp).unwrap();
-        let encoded_header = rlp::encode(&header).into_vec();
+        let encoded_header = rlp::encode(&header).to_vec();
         assert_eq!(header_rlp, encoded_header);
     }
 }

@@ -86,7 +86,7 @@ impl Receipt {
         receipt_proto
     }
 
-    pub fn from_with_state_root(receipt: ProtoReceipt, state_root: Option<H256>) -> Self {
+    pub fn from_with_state_root(mut receipt: ProtoReceipt, state_root: Option<H256>) -> Self {
         let quota_used: U256 = U256::from_str(receipt.get_quota_used()).unwrap();
         let account_nonce: U256 = U256::from(receipt.get_account_nonce());
         let transaction_hash: H256 = H256::from_slice(receipt.get_transaction_hash());
@@ -112,11 +112,8 @@ impl Receipt {
             .collect();
 
         if receipt.error.is_some() {
-            #[allow(clippy::redundant_clone)]
             {
-                error = Some(ReceiptError::from_proto(
-                    receipt.clone().take_error().get_error(),
-                ));
+                error = Some(ReceiptError::from_proto(receipt.take_error().get_error()));
             }
         }
 
@@ -289,13 +286,14 @@ mod tests {
             None,
             0x40cae.into(),
             vec![Log {
-                address: "dcf421d093428b096ca501a7cd1a740855a7976f".into(),
+                address: Address::from_str("dcf421d093428b096ca501a7cd1a740855a7976f").unwrap(),
                 topics: vec![],
                 data: vec![0u8; 32],
             }],
             None,
             1.into(),
-            "2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into(),
+            H256::from_str("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee")
+                .unwrap(),
         );
         let encoded = ::rlp::encode(&r);
         println!("encode ok");
@@ -307,16 +305,20 @@ mod tests {
     #[test]
     fn test_basic() {
         let r = Receipt::new(
-            Some("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into()),
+            Some(
+                H256::from_str("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee")
+                    .unwrap(),
+            ),
             0x40cae.into(),
             vec![Log {
-                address: "dcf421d093428b096ca501a7cd1a740855a7976f".into(),
+                address: Address::from_str("dcf421d093428b096ca501a7cd1a740855a7976f").unwrap(),
                 topics: vec![],
                 data: vec![0u8; 32],
             }],
             None,
             1.into(),
-            "2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into(),
+            H256::from_str("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee")
+                .unwrap(),
         );
         let encoded = ::rlp::encode(&r);
         let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
@@ -327,16 +329,20 @@ mod tests {
     #[test]
     fn test_with_error() {
         let r = Receipt::new(
-            Some("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into()),
+            Some(
+                H256::from_str("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee")
+                    .unwrap(),
+            ),
             0x40cae.into(),
             vec![Log {
-                address: "dcf421d093428b096ca501a7cd1a740855a7976f".into(),
+                address: Address::from_str("dcf421d093428b096ca501a7cd1a740855a7976f").unwrap(),
                 topics: vec![],
                 data: vec![0u8; 32],
             }],
             Some(ReceiptError::NoTransactionPermission),
             1.into(),
-            "2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee".into(),
+            H256::from_str("2f697d671e9ae4ee24a43c4b0d7e15f1cb4ba6de1561120d43b9a4e8c4a8a6ee")
+                .unwrap(),
         );
         let encoded = ::rlp::encode(&r);
         let decoded: Receipt = ::rlp::decode(&encoded).unwrap();

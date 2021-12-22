@@ -20,8 +20,6 @@ extern crate cita_logger as logger;
 extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
-#[cfg_attr(test, macro_use)]
-extern crate serde_json;
 #[macro_use]
 extern crate crossbeam_channel;
 extern crate libproto;
@@ -195,6 +193,4 @@ pub mod core_chain;
 pub mod core_executor;
 mod executor_server;
 mod panic_hook;
-#[cfg(test)]
-mod tests;
 pub mod types;

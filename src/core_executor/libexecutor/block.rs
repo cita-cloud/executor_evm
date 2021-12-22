@@ -65,7 +65,6 @@ impl DerefMut for ExecutedBlock {
 }
 
 impl ExecutedBlock {
-    #[allow(clippy::too_many_arguments)]
     pub fn create(
         block: OpenBlock,
         trie_db: Arc<CitaTrieDb>,
@@ -455,14 +454,15 @@ mod tests {
     use rlp;
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_encode_and_decode() {
         let mut stx = SignedTransaction::default();
         stx.data = vec![1; 200];
         let transactions = vec![stx; 200];
         let body = BlockBody { transactions };
         let body_rlp = rlp::encode(&body);
-        let body: BlockBody = rlp::decode(&body_rlp);
-        let body_encoded = rlp::encode(&body).into_vec();
+        let body: BlockBody = rlp::decode(&body_rlp).unwrap();
+        let body_encoded = rlp::encode(&body).to_vec();
 
         assert_eq!(body_rlp, body_encoded);
     }
@@ -472,8 +472,8 @@ mod tests {
         let transactions = vec![];
         let body = BlockBody { transactions };
         let body_rlp = rlp::encode(&body);
-        let body: BlockBody = rlp::decode(&body_rlp);
-        let body_encoded = rlp::encode(&body).into_vec();
+        let body: BlockBody = rlp::decode(&body_rlp).unwrap();
+        let body_encoded = rlp::encode(&body).to_vec();
 
         assert_eq!(body_rlp, body_encoded);
     }

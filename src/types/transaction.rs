@@ -602,26 +602,27 @@ mod tests {
     use rlp;
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_encode_and_decode() {
         let mut stx = SignedTransaction::default();
         stx.data = vec![1; 200];
         let stx_rlp = rlp::encode(&stx);
         let stx: SignedTransaction = rlp::decode(&stx_rlp).unwrap();
-        let stx_encoded = rlp::encode(&stx).into_vec();
+        let stx_encoded = rlp::encode(&stx).to_vec();
 
         assert_eq!(stx_rlp, stx_encoded);
     }
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_protobuf() {
         let mut stx = SignedTransaction::default();
         stx.gas = U256::from(u64::max_value() / 100000);
-        let stx_rlp = rlp::encode(&stx);
         let stx_proto = stx.protobuf();
         let stx = SignedTransaction::create(&stx_proto).unwrap();
-        let stx_encoded = rlp::encode(&stx).into_vec();
-        let stx: SignedTransaction = rlp::decode(&stx_encoded).unwrap();
-        let stx_encoded = rlp::encode(&stx).into_vec();
+        let stx_rlp = rlp::encode(&stx).to_vec();
+        let stx: SignedTransaction = rlp::decode(&stx_rlp).unwrap();
+        let stx_encoded = rlp::encode(&stx).to_vec();
 
         assert_eq!(stx_rlp, stx_encoded);
     }

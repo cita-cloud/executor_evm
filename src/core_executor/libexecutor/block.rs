@@ -454,6 +454,7 @@ mod tests {
     use rlp;
 
     #[test]
+    #[allow(clippy::field_reassign_with_default)]
     fn test_encode_and_decode() {
         let mut stx = SignedTransaction::default();
         stx.data = vec![1; 200];

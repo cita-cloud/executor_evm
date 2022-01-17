@@ -242,6 +242,10 @@ impl Executor {
         self.current_header.read().hash().unwrap()
     }
 
+    pub fn get_current_header(&self) -> Header {
+        (*self.current_header.read()).clone()
+    }
+
     /// Build last 256 block hashes.
     pub fn build_last_hashes(&self, prevhash: Option<H256>, parent_height: u64) -> LastHashes {
         let parent_hash = prevhash.unwrap_or_else(|| {

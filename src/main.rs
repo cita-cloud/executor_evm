@@ -36,7 +36,7 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
-use libproto::ExecutedResult;
+use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
 use status_code::StatusCode;
 use std::thread;
 use tonic::transport::Server;
@@ -115,13 +115,38 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let current_block = executor.block_header_by_height(open_block.number());
-                            // prevent re-enter
-                            if current_block.is_some() && current_block.unwrap().timestamp() != 0 {
-                                let _ = exec_resp_sender.send(ExecutedFinal{
-                                    status: StatusCode::ReenterBlock,
-                                    result: ExecutedResult::new(),
-                                });
+                            let current_header = executor.get_current_header();
+                            if current_header.timestamp() != 0 && current_header.number() == open_block.number() {
+                                let mut header = ExecutedHeader::new();
+                                header.set_state_root(current_header.state_root().0.to_vec());
+
+                                let mut exc_info = ExecutedInfo::new();
+                                exc_info.set_header(header);
+
+                                let mut exc_res = ExecutedResult::new();
+                                exc_res.set_executed_info(exc_info);
+
+                                info!("current_header: {:?}, open_block: {:?}", current_header.open_header(), open_block.header);
+
+                                if current_header.open_header() == &open_block.header {
+                                    info!(
+                                        "block({}) re-enter",
+                                        open_block.number()
+                                    );
+                                    exec_resp_sender.send(ExecutedFinal{
+                                        status: StatusCode::ReenterBlock,
+                                        result: exc_res,
+                                    }).unwrap();
+                                } else {
+                                    warn!(
+                                        "invalid block({}) re-enter",
+                                        open_block.number()
+                                    );
+                                    exec_resp_sender.send(ExecutedFinal{
+                                        status: StatusCode::InvalidKey,
+                                        result: exc_res,
+                                    }).unwrap();
+                                }
                             } else {
                                 let mut close_block = executor.before_fsm(open_block.clone());
                                 let executed_result = executor.grow(&close_block);
@@ -132,7 +157,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     result: executed_result,
                                 });
                             }
-
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }

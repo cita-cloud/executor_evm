@@ -80,9 +80,9 @@ impl ExecutorService for ExecutorServer {
 
         match self.exec_resp_receiver.recv() {
             Ok(executed_final) => {
+                let header = executed_final.result.get_executed_info().get_header();
+                let state_root = header.get_state_root();
                 if executed_final.status.is_success().is_ok() {
-                    let header = executed_final.result.get_executed_info().get_header();
-                    let state_root = header.get_state_root();
                     info!(
                         "height: {}, state_root: 0x{}",
                         header.get_height(),
@@ -95,9 +95,16 @@ impl ExecutorService for ExecutorServer {
                         }),
                     }))
                 } else {
+                    info!(
+                        "exec: not success: {:?}, state_root: 0x{}",
+                        executed_final.status,
+                        hex::encode(state_root)
+                    );
                     Ok(Response::new(HashResponse {
                         status: Some(executed_final.status.into()),
-                        hash: None,
+                        hash: Some(CloudHash {
+                            hash: state_root.to_vec(),
+                        }),
                     }))
                 }
             }

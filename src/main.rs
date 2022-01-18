@@ -115,48 +115,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let current_header = executor.get_current_header();
-                            if current_header.timestamp() != 0 && current_header.number() == open_block.number() {
-                                let mut header = ExecutedHeader::new();
-                                header.set_state_root(current_header.state_root().0.to_vec());
+                            if let Some(reserve_header) = executor.block_header_by_height(open_block.number()) {
+                                if reserve_header.timestamp() != 0 {
+                                        let mut header = ExecutedHeader::new();
+                                    header.set_state_root(reserve_header.state_root().0.to_vec());
 
-                                let mut exc_info = ExecutedInfo::new();
-                                exc_info.set_header(header);
+                                    let mut exc_info = ExecutedInfo::new();
+                                    exc_info.set_header(header);
 
-                                let mut exc_res = ExecutedResult::new();
-                                exc_res.set_executed_info(exc_info);
+                                    let mut exc_res = ExecutedResult::new();
+                                    exc_res.set_executed_info(exc_info);
 
-                                info!("current_header: {:?}, open_block: {:?}", current_header.open_header(), open_block.header);
-
-                                if current_header.open_header() == &open_block.header {
                                     info!(
-                                        "block({}) re-enter",
-                                        open_block.number()
+                                        "reserve_header: {:?}, open_block: {:?}",
+                                        reserve_header.open_header(),
+                                        open_block.header
                                     );
-                                    exec_resp_sender.send(ExecutedFinal{
-                                        status: StatusCode::ReenterBlock,
-                                        result: exc_res,
-                                    }).unwrap();
-                                } else {
-                                    warn!(
-                                        "invalid block({}) re-enter",
-                                        open_block.number()
-                                    );
-                                    exec_resp_sender.send(ExecutedFinal{
-                                        status: StatusCode::InvalidKey,
-                                        result: exc_res,
-                                    }).unwrap();
+
+                                    if reserve_header.open_header() == &open_block.header {
+                                        info!(
+                                            "block({}) re-enter",
+                                            open_block.number()
+                                        );
+                                        exec_resp_sender.send(ExecutedFinal{
+                                            status: StatusCode::ReenterBlock,
+                                            result: exc_res,
+                                        }).unwrap();
+                                    } else {
+                                        warn!(
+                                            "invalid block({}) re-enter",
+                                            open_block.number()
+                                        );
+                                        exec_resp_sender.send(ExecutedFinal{
+                                            status: StatusCode::InvalidKey,
+                                            result: exc_res,
+                                        }).unwrap();
+                                    }
+                                    continue
                                 }
-                            } else {
-                                let mut close_block = executor.before_fsm(open_block.clone());
-                                let executed_result = executor.grow(&close_block);
-                                close_block.clear_cache();
-                                executor.core_chain.set_db_result(&executed_result, &open_block);
-                                let _ = exec_resp_sender.send(ExecutedFinal{
-                                    status: StatusCode::Success,
-                                    result: executed_result,
-                                });
                             }
+
+                            let mut close_block = executor.before_fsm(open_block.clone());
+                            let executed_result = executor.grow(&close_block);
+                            close_block.clear_cache();
+                            executor.core_chain.set_db_result(&executed_result, &open_block);
+                            let _ = exec_resp_sender.send(ExecutedFinal{
+                                status: StatusCode::Success,
+                                result: executed_result,
+                            });
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }

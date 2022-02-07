@@ -147,7 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             open_block.number()
                                         );
                                         exec_resp_sender.send(ExecutedFinal{
-                                            status: StatusCode::InvalidKey,
+                                            status: StatusCode::ReenterInvalidBlock,
                                             result: exc_res,
                                         }).unwrap();
                                     }

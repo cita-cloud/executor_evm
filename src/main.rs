@@ -67,19 +67,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .short('p')
                         .long("port")
                         .takes_value(true)
-                        .about("Set executor port, default 50002"),
+                        .help("Set executor port, default 50002"),
                 )
                 .arg(
                     Arg::new("eth-compatibility")
                         .short('e')
                         .long("compatibility")
-                        .about("Sets eth compatibility, default false"),
+                        .help("Sets eth compatibility, default false"),
                 )
                 .arg(
                     Arg::new("config")
                         .short('c')
                         .long("config")
-                        .about("config file path"),
+                        .help("config file path"),
                 ),
         )
         .get_matches();

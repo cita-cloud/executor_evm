@@ -38,6 +38,7 @@ use executor_server::ExecutorServer;
 use git_version::git_version;
 use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
 use status_code::StatusCode;
+use std::path::Path;
 use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
@@ -100,6 +101,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
+        // db_path must be relative path
+        assert!(
+            !Path::new(&config.db_path).is_absolute(),
+            "db_path must be relative path"
+        );
         let mut executor = Executor::init(config.db_path, eth_compatibility);
 
         let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();

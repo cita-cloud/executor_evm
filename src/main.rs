@@ -36,7 +36,7 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
-use libproto::ExecutedResult;
+use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
 use status_code::StatusCode;
 use std::thread;
 use tonic::transport::Server;
@@ -67,19 +67,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .short('p')
                         .long("port")
                         .takes_value(true)
-                        .about("Set executor port, default 50002"),
+                        .help("Set executor port, default 50002"),
                 )
                 .arg(
                     Arg::new("eth-compatibility")
                         .short('e')
                         .long("compatibility")
-                        .about("Sets eth compatibility, default false"),
+                        .help("Sets eth compatibility, default false"),
                 )
                 .arg(
                     Arg::new("config")
                         .short('c')
                         .long("config")
-                        .about("config file path"),
+                        .help("config file path"),
                 ),
         )
         .get_matches();
@@ -115,24 +115,54 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
-                            let current_block = executor.block_header_by_height(open_block.number());
-                            // prevent re-enter
-                            if current_block.is_some() && current_block.unwrap().timestamp() != 0 {
-                                let _ = exec_resp_sender.send(ExecutedFinal{
-                                    status: StatusCode::ReenterBlock,
-                                    result: ExecutedResult::new(),
-                                });
-                            } else {
-                                let mut close_block = executor.before_fsm(open_block.clone());
-                                let executed_result = executor.grow(&close_block);
-                                close_block.clear_cache();
-                                executor.core_chain.set_db_result(&executed_result, &open_block);
-                                let _ = exec_resp_sender.send(ExecutedFinal{
-                                    status: StatusCode::Success,
-                                    result: executed_result,
-                                });
+                            if let Some(reserve_header) = executor.block_header_by_height(open_block.number()) {
+                                if reserve_header.timestamp() != 0 {
+                                        let mut header = ExecutedHeader::new();
+                                    header.set_state_root(reserve_header.state_root().0.to_vec());
+
+                                    let mut exc_info = ExecutedInfo::new();
+                                    exc_info.set_header(header);
+
+                                    let mut exc_res = ExecutedResult::new();
+                                    exc_res.set_executed_info(exc_info);
+
+                                    info!(
+                                        "reserve_header: {:?}, open_block: {:?}",
+                                        reserve_header.open_header(),
+                                        open_block.header
+                                    );
+
+                                    if reserve_header.open_header() == &open_block.header {
+                                        info!(
+                                            "block({}) re-enter",
+                                            open_block.number()
+                                        );
+                                        exec_resp_sender.send(ExecutedFinal{
+                                            status: StatusCode::ReenterBlock,
+                                            result: exc_res,
+                                        }).unwrap();
+                                    } else {
+                                        warn!(
+                                            "invalid block({}) re-enter",
+                                            open_block.number()
+                                        );
+                                        exec_resp_sender.send(ExecutedFinal{
+                                            status: StatusCode::ReenterInvalidBlock,
+                                            result: exc_res,
+                                        }).unwrap();
+                                    }
+                                    continue
+                                }
                             }
 
+                            let mut close_block = executor.before_fsm(open_block.clone());
+                            let executed_result = executor.grow(&close_block);
+                            close_block.clear_cache();
+                            executor.core_chain.set_db_result(&executed_result, &open_block);
+                            let _ = exec_resp_sender.send(ExecutedFinal{
+                                status: StatusCode::Success,
+                                result: executed_result,
+                            });
                         },
                         Err(e) => warn!("receive exec_req_receiver error: {}", e),
                     }

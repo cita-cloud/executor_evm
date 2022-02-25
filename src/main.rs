@@ -79,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::new("config")
                         .short('c')
                         .long("config")
+                        .takes_value(true)
                         .help("config file path"),
                 ),
         )

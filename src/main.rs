@@ -29,7 +29,7 @@ use crate::executor_server::ExecutedFinal;
 use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
-use clap::{App, Arg};
+use clap::{Arg, Command};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
@@ -54,13 +54,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     ::std::env::set_var("RUST_BACKTRACE", "full");
     set_panic_handler();
 
-    let matches = App::new("CITA-CLOUD EVM EXECUTOR")
+    let matches = Command::new("CITA-CLOUD EVM EXECUTOR")
         .author("Rivtower Technologies.")
         .version("0.1.0")
         .about("Supply evm interpreter")
-        .subcommand(App::new("git").about("print information from git"))
+        .subcommand(Command::new("git").about("print information from git"))
         .subcommand(
-            App::new("run")
+            Command::new("run")
                 .about("run this service")
                 .arg(
                     Arg::new("grpc-port")
@@ -79,6 +79,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::new("config")
                         .short('c')
                         .long("config")
+                        .takes_value(true)
                         .help("config file path"),
                 ),
         )

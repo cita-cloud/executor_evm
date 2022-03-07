@@ -63,24 +63,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Command::new("run")
                 .about("run this service")
                 .arg(
-                    Arg::new("grpc-port")
-                        .short('p')
-                        .long("port")
-                        .takes_value(true)
-                        .help("Set executor port, default 50002"),
-                )
-                .arg(
-                    Arg::new("eth-compatibility")
-                        .short('e')
-                        .long("compatibility")
-                        .help("Sets eth compatibility, default false"),
-                )
-                .arg(
                     Arg::new("config")
                         .short('c')
                         .long("config")
                         .takes_value(true)
                         .help("config file path"),
+                )
+                .arg(
+                    Arg::new("log")
+                        .short('l')
+                        .long("log")
+                        .takes_value(true)
+                        .help("log config file path"),
                 ),
         )
         .get_matches();
@@ -92,13 +86,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let config = ExecutorConfig::new(opts.value_of("config").unwrap_or("config.toml"));
 
         // init log4rs
-        log4rs::init_file(&config.log_file, Default::default()).unwrap();
+        log4rs::init_file(
+            opts.value_of("log").unwrap_or("executor-log4rs.yaml"),
+            Default::default(),
+        )
+        .map_err(|e| println!("log init err: {}", e))
+        .unwrap();
 
-        let config_port = config.executor_port.to_string();
-        let grpc_port = opts.value_of("grpc-port").unwrap_or(&config_port);
+        let grpc_port = config.executor_port.to_string();
         info!("grpc port of this service: {}", grpc_port);
 
-        let eth_compatibility = opts.is_present("eth-compatibility") | config.eth_compatibility;
+        let eth_compatibility = config.eth_compatibility;
 
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 

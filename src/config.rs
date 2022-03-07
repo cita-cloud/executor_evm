@@ -22,8 +22,6 @@ pub struct ExecutorConfig {
 
     pub eth_compatibility: bool,
 
-    pub log_file: String,
-
     pub db_path: String,
 }
 
@@ -32,7 +30,6 @@ impl Default for ExecutorConfig {
         Self {
             executor_port: 50002,
             eth_compatibility: false,
-            log_file: "executor-log4rs.yaml".to_string(),
             db_path: "data".to_string(),
         }
     }

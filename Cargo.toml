@@ -14,7 +14,7 @@
 
 [package]
 name = "executor"
-version = "6.3.2"
+version = "6.3.3"
 authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2018"
@@ -29,7 +29,7 @@ git-version = "0.3"
 prost = "0.8"
 cita-database = "0.1"
 tokio = { version = "1.3", features = ["full"] }
-clap = { version = "3.1.2", features = ["derive"] }
+clap = { version = "3.1.2", features = ["derive", "cargo"] }
 crossbeam-channel = "0.5.1"
 hex = "0.4"
 serde = "1.0"

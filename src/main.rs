@@ -29,7 +29,7 @@ use crate::executor_server::ExecutedFinal;
 use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
-use clap::{Arg, Command};
+use clap::{crate_authors, crate_version, Arg, Command};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
@@ -55,8 +55,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     set_panic_handler();
 
     let matches = Command::new("CITA-CLOUD EVM EXECUTOR")
-        .author("Rivtower Technologies.")
-        .version("0.1.0")
+        .author(crate_authors!())
+        .version(crate_version!())
         .about("Supply evm interpreter")
         .subcommand(Command::new("git").about("print information from git"))
         .subcommand(

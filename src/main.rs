@@ -122,6 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
+                            // open_block is next block
                             if open_block.number() == executor.get_current_height() + 1 {
                                 let cloud_header = executor.get_current_header().to_cloud_protobuf().header.unwrap();
                                 let mut block_header_bytes = Vec::with_capacity(cloud_header.encoded_len());
@@ -146,8 +147,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     );
                                 }
                             }
-
+                            // handle re-enter-block & genesis block
                             if let Some(reserve_header) = executor.block_header_by_height(open_block.number()) {
+                                // timestamp != 0, re-enter-block, else, genesis block
                                 if reserve_header.timestamp() != 0 {
                                     let mut header = ExecutedHeader::new();
                                     header.set_state_root(reserve_header.state_root().0.to_vec());
@@ -157,7 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                                     let mut exc_res = ExecutedResult::new();
                                     exc_res.set_executed_info(exc_info);
-
+                                    // handle re-enter-block, divide valid or invalid re-enter-block
                                     if reserve_header.open_header() == &open_block.header {
                                         info!(
                                             "block({}) re-enter",
@@ -178,6 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                         }).unwrap();
                                     }
                                 } else {
+                                    // execute genesis block
                                     let mut close_block = executor.before_fsm(open_block.clone());
                                     let executed_result = executor.grow(&close_block);
                                     close_block.clear_cache();

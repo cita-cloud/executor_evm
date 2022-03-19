@@ -36,8 +36,11 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use git_version::git_version;
+use hashable::Hashable;
 use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
+use prost::Message;
 use status_code::StatusCode;
+use std::path::Path;
 use std::thread;
 use tonic::transport::Server;
 use types::block::OpenBlock;
@@ -100,6 +103,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
+        // db_path must be relative path
+        assert!(
+            !Path::new(&config.db_path).is_absolute(),
+            "db_path must be relative path"
+        );
         let mut executor = Executor::init(config.db_path, eth_compatibility);
 
         let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();
@@ -114,9 +122,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 recv(exec_req_receiver) -> open_block => {
                     match open_block {
                         Ok(open_block) => {
+                            // open_block is next block
+                            if open_block.number() == executor.get_current_height() + 1 {
+                                let cloud_header = executor.get_current_header().to_cloud_protobuf().header.unwrap();
+                                let mut block_header_bytes = Vec::with_capacity(cloud_header.encoded_len());
+                                cloud_header.encode(&mut block_header_bytes).map_err(|_| {
+                                    warn!("encode block cloud_header failed");
+                                    StatusCode::EncodeError
+                                }).unwrap();
+                                if &block_header_bytes.crypt_hash() == open_block.parent_hash() {
+                                    let mut close_block = executor.before_fsm(open_block.clone());
+                                    let executed_result = executor.grow(&close_block);
+                                    close_block.clear_cache();
+                                    executor.core_chain.set_db_result(&executed_result, &open_block);
+                                    let _ = exec_resp_sender.send(ExecutedFinal{
+                                        status: StatusCode::Success,
+                                        result: executed_result,
+                                    });
+                                    continue;
+                                } else {
+                                    panic!("block's parent_hash({:?})  is not consistent with current_hash({:?})",
+                                        &block_header_bytes.crypt_hash(),
+                                        open_block.parent_hash()
+                                    );
+                                }
+                            }
+                            // handle re-enter-block & genesis block
                             if let Some(reserve_header) = executor.block_header_by_height(open_block.number()) {
+                                // timestamp != 0, re-enter-block, else, genesis block
                                 if reserve_header.timestamp() != 0 {
-                                        let mut header = ExecutedHeader::new();
+                                    let mut header = ExecutedHeader::new();
                                     header.set_state_root(reserve_header.state_root().0.to_vec());
 
                                     let mut exc_info = ExecutedInfo::new();
@@ -124,13 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                                     let mut exc_res = ExecutedResult::new();
                                     exc_res.set_executed_info(exc_info);
-
-                                    info!(
-                                        "reserve_header: {:?}, open_block: {:?}",
-                                        reserve_header.open_header(),
-                                        open_block.header
-                                    );
-
+                                    // handle re-enter-block, divide valid or invalid re-enter-block
                                     if reserve_header.open_header() == &open_block.header {
                                         info!(
                                             "block({}) re-enter",
@@ -150,20 +179,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             result: exc_res,
                                         }).unwrap();
                                     }
-                                    continue
+                                } else {
+                                    // execute genesis block
+                                    let mut close_block = executor.before_fsm(open_block.clone());
+                                    let executed_result = executor.grow(&close_block);
+                                    close_block.clear_cache();
+                                    executor.core_chain.set_db_result(&executed_result, &open_block);
+                                    let _ = exec_resp_sender.send(ExecutedFinal{
+                                        status: StatusCode::Success,
+                                        result: executed_result,
+                                    });
                                 }
-                            }
-
-                            let mut close_block = executor.before_fsm(open_block.clone());
-                            let executed_result = executor.grow(&close_block);
-                            close_block.clear_cache();
-                            executor.core_chain.set_db_result(&executed_result, &open_block);
-                            let _ = exec_resp_sender.send(ExecutedFinal{
-                                status: StatusCode::Success,
-                                result: executed_result,
-                            });
+                            } else { panic!("current height: {}, open_block number: {}",
+                                executor.get_current_height(), open_block.number()); }
                         },
-                        Err(e) => warn!("receive exec_req_receiver error: {}", e),
+                        Err(e) => panic!("receive exec_req_receiver error: {}", e),
                     }
                 },
                 recv(call_req_receiver) -> cloud_call_request => {
@@ -173,7 +203,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let call_result = executor.eth_call(CallRequest::from(cloud_call_request), BlockTag::Tag(Tag::Pending));
                             let _ = call_resp_sender.send(call_result);
                         },
-                        Err(e) => warn!("receive call_req_receiver error: {}", e),
+                        Err(e) => panic!("receive call_req_receiver error: {}", e),
                     }
                 },
                 recv(command_req_receiver) -> command_request => {
@@ -182,7 +212,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             trace!("executor receive {}", command_request);
                             let _ = command_resp_sender.send(executor.operate(command_request));
                         },
-                        Err(e) => warn!("receive command_req_receiver error: {}", e),
+                        Err(e) => panic!("receive command_req_receiver error: {}", e),
                     }
                 }
             }

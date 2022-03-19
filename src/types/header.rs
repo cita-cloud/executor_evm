@@ -24,7 +24,7 @@ use time::OffsetDateTime;
 
 use super::Bytes;
 pub use crate::types::block_number::BlockNumber;
-use cita_cloud_proto::blockchain::Block as CloudBlock;
+use cita_cloud_proto::blockchain::{Block as CloudBlock, BlockHeader as CloudBlockHeader};
 use hashable::{Hashable, HASH_NULL_RLP};
 
 lazy_static! {
@@ -100,6 +100,26 @@ impl OpenHeader {
         }
 
         unreachable!()
+    }
+
+    pub fn to_cloud_protobuf(&self) -> CloudBlock {
+        let proposal = if self.number == 0 {
+            vec![0; 32]
+        } else {
+            self.proposer.0.to_vec()
+        };
+        CloudBlock {
+            version: self.version,
+            header: Some(CloudBlockHeader {
+                prevhash: self.parent_hash.0.to_vec(),
+                timestamp: self.timestamp,
+                height: self.number,
+                transactions_root: self.transactions_root.0.to_vec(),
+                proposer: proposal,
+            }),
+            body: None,
+            proof: vec![],
+        }
     }
 
     pub fn is_equivalent(&self, header: &OpenHeader) -> bool {

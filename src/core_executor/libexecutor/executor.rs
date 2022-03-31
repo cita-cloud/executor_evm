@@ -12,9 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use crate::config::ExecutorConfig;
 use crate::core_chain::Chain;
 pub use crate::core_executor::libexecutor::block::*;
-use crate::core_executor::trie_db::TrieDb;
+use crate::trie_db::TrieDb;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::db_indexes;
 use crate::types::db_indexes::DbIndex;
@@ -42,14 +43,13 @@ pub struct Executor {
 }
 
 impl Executor {
-    #[allow(unknown_lints, clippy::too_many_arguments)] // TODO clippy
-    pub fn init(data_path: String, eth_compatibility: bool) -> Executor {
+    pub fn init(config: &ExecutorConfig) -> Executor {
         // TODO: Can remove NUM_COLUMNS(useless)
-        let config = Config::with_category_num(NUM_COLUMNS);
-        let statedb_path = data_path.clone() + "/statedb";
-        let rocks_db = RocksDB::open(&statedb_path, &config).unwrap();
-        let db = Arc::new(rocks_db);
-        let state_db = Arc::new(TrieDb::new(db.clone()));
+        let rocks_config = Config::with_category_num(NUM_COLUMNS);
+        let statedb_path = config.db_path.clone() + "/statedb";
+        let state_db = RocksDB::open(&statedb_path, &rocks_config).unwrap();
+        let db = Arc::new(state_db);
+        let state_db = Arc::new(TrieDb::new(db.clone(), config.sync_mode.as_str().into()));
 
         let current_header = match get_current_header(db.clone()) {
             Some(header) => header,
@@ -58,15 +58,16 @@ impl Executor {
                 Header::default()
             }
         };
-        let nosql_path = data_path + "/nosql";
-        let rocks_db = RocksDB::open(&nosql_path, &config).expect("Open DB failed unexpected.");
-        let chain_db = Arc::new(rocks_db);
+        let nosql_path = config.db_path.clone() + "/nosql";
+        let nosql_db =
+            RocksDB::open(&nosql_path, &rocks_config).expect("Open DB failed unexpected.");
+        let chain_db = Arc::new(nosql_db);
         let core_chain = Chain::init_chain(chain_db);
         let executor = Executor {
             current_header: RwLock::new(current_header),
             state_db,
             db,
-            eth_compatibility,
+            eth_compatibility: config.eth_compatibility,
             core_chain,
         };
 

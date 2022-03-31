@@ -12,14 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::types::H256;
+
 use cita_database::error::DatabaseError;
 use cita_database::{DataCategory, Database};
 use hashable::HASH_NULL_RLP;
 use parking_lot::RwLock;
-use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy)]
+pub enum NodeType {
+    Archive,
+    Full,
+}
+
+impl From<&str> for NodeType {
+    fn from(journaldb_type: &str) -> Self {
+        match journaldb_type {
+            "archive" => NodeType::Archive,
+            "full" => NodeType::Full,
+            str => panic!("input archive or full, your input: {}", str),
+        }
+    }
+}
 
 static NULL_RLP_STATIC: [u8; 1] = [0x80; 1];
 
@@ -30,16 +47,18 @@ where
 {
     db: Arc<DB>,
     cache: Arc<RwLock<HashMap<Vec<u8>, Vec<u8>>>>,
+    node_type: NodeType,
 }
 
 impl<DB> TrieDb<DB>
 where
     DB: Database,
 {
-    pub fn new(db: Arc<DB>) -> Self {
+    pub fn new(db: Arc<DB>, node_type: NodeType) -> Self {
         TrieDb {
             db,
             cache: Arc::new(RwLock::new(HashMap::new())),
+            node_type,
         }
     }
 
@@ -87,8 +106,17 @@ where
         }
     }
 
-    fn remove(&self, _key: &[u8]) -> Result<(), Self::Error> {
-        Ok(())
+    fn remove(&self, key: &[u8]) -> Result<(), Self::Error> {
+        match self.node_type {
+            NodeType::Archive => Ok(()),
+            NodeType::Full => {
+                if H256::from_slice(key) == HASH_NULL_RLP {
+                    return Ok(());
+                }
+                self.cache.write().remove(key);
+                self.db.remove(Some(DataCategory::State), key)
+            }
+        }
     }
 
     fn insert_batch(&self, keys: Vec<Vec<u8>>, values: Vec<Vec<u8>>) -> Result<(), Self::Error> {
@@ -104,8 +132,22 @@ where
         Ok(())
     }
 
-    fn remove_batch(&self, _keys: &[Vec<u8>]) -> Result<(), Self::Error> {
-        Ok(())
+    fn remove_batch(&self, keys: &[Vec<u8>]) -> Result<(), Self::Error> {
+        match self.node_type {
+            NodeType::Archive => Ok(()),
+            NodeType::Full => {
+                {
+                    let mut cache = self.cache.write();
+                    for key in keys {
+                        if H256::from_slice(&key[..]) == HASH_NULL_RLP {
+                            continue;
+                        }
+                        cache.remove(key);
+                    }
+                }
+                self.db.remove_batch(Some(DataCategory::State), keys)
+            }
+        }
     }
 
     fn flush(&self) -> Result<(), Self::Error> {
@@ -131,6 +173,7 @@ where
         TrieDb {
             db: Arc::clone(&self.db),
             cache: Arc::clone(&self.cache),
+            node_type: self.node_type,
         }
     }
 }

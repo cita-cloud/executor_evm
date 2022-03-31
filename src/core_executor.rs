@@ -21,8 +21,6 @@ pub mod libexecutor;
 pub mod tx_gas_schedule;
 
 mod exception;
-mod trie_db;
 
 pub use crate::types::*;
 pub use cita_database as cita_db;
-pub use trie_db::TrieDb;

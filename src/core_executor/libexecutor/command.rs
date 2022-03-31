@@ -20,7 +20,7 @@ use crate::core_executor::exception::ExecutedException;
 use crate::core_executor::libexecutor::block::EvmBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
-use crate::core_executor::trie_db::TrieDb;
+use crate::trie_db::TrieDb;
 use crate::types::block_number::BlockTag;
 use crate::types::context::Context;
 use crate::types::errors::CallError;

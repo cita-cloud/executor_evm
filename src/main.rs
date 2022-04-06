@@ -99,8 +99,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let grpc_port = config.executor_port.to_string();
         info!("grpc port of this service: {}", grpc_port);
 
-        let eth_compatibility = config.eth_compatibility;
-
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
         // db_path must be relative path
@@ -108,7 +106,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             !Path::new(&config.db_path).is_absolute(),
             "db_path must be relative path"
         );
-        let mut executor = Executor::init(config.db_path, eth_compatibility);
+        let mut executor = Executor::init(&config);
 
         let (exec_req_sender, exec_req_receiver) = crossbeam_channel::unbounded::<OpenBlock>();
         let (exec_resp_sender, exec_resp_receiver) = crossbeam_channel::unbounded();
@@ -252,4 +250,5 @@ pub mod core_chain;
 pub mod core_executor;
 mod executor_server;
 mod panic_hook;
+mod trie_db;
 pub mod types;

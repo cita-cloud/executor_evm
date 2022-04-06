@@ -23,6 +23,8 @@ pub struct ExecutorConfig {
     pub eth_compatibility: bool,
 
     pub db_path: String,
+
+    pub sync_mode: String,
 }
 
 impl Default for ExecutorConfig {
@@ -31,6 +33,7 @@ impl Default for ExecutorConfig {
             executor_port: 50002,
             eth_compatibility: false,
             db_path: "data".to_string(),
+            sync_mode: "archive".to_string(),
         }
     }
 }

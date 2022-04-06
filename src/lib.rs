@@ -20,4 +20,5 @@ extern crate serde_derive;
 extern crate lazy_static;
 
 pub mod config;
+pub mod trie_db;
 pub mod types;

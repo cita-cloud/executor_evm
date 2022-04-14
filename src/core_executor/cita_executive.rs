@@ -695,6 +695,7 @@ pub struct VmExecParams {
     pub gas: u64,
     /// Gas price.
     pub gas_price: U256,
+    pub base_fee: U256,
     /// Transaction value.
     pub value: U256,
     /// nonce
@@ -725,6 +726,7 @@ impl From<InterpreterParams> for VmExecParams {
             extra: params.extra,
             depth: params.depth,
             disable_transfer_value: params.disable_transfer_value,
+            base_fee: params.base_fee,
         }
     }
 }
@@ -750,6 +752,7 @@ impl From<VmExecParams> for InterpreterParams {
             depth: params.depth,
             is_create: false,
             disable_transfer_value: params.disable_transfer_value,
+            base_fee: params.base_fee,
         }
     }
 }

@@ -26,9 +26,11 @@ extern crate libproto;
 
 use crate::config::ExecutorConfig;
 use crate::executor_server::ExecutedFinal;
+use crate::health_check::HealthCheckServer;
 use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
+use cita_cloud_proto::health_check::health_server::HealthServer;
 use clap::{crate_authors, crate_version, Arg, Command};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
@@ -234,6 +236,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Server::builder()
                     .add_service(executor_svc)
                     .add_service(rpc_svc)
+                    .add_service(HealthServer::new(HealthCheckServer {}))
                     .serve(executor_addr)
                     .await
                     .unwrap();
@@ -249,6 +252,7 @@ mod config;
 pub mod core_chain;
 pub mod core_executor;
 mod executor_server;
+mod health_check;
 mod panic_hook;
 mod trie_db;
 pub mod types;

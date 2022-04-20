@@ -43,8 +43,8 @@ jobs:
           command: clippy
           args: --all --all-targets
 
-  check:
-    name: Check
+  test:
+    name: Test
     runs-on: [ self-hosted, Linux, alibaba-cloud ]
     steps:
       - uses: actions/checkout@v2
@@ -53,7 +53,7 @@ jobs:
           toolchain: stable
       - uses: actions-rs/cargo@v1
         with:
-          command: check
+          command: test
 
   build:
     name: Build

@@ -24,6 +24,7 @@ use crate::types::H256;
 pub use byteorder::{BigEndian, ByteOrder};
 use cita_database::{Config, DataCategory, Database, RocksDB, NUM_COLUMNS};
 use libproto::{ConsensusConfig, ExecutedResult};
+use log::{info, trace, warn};
 use rlp::{decode, encode};
 use std::convert::Into;
 use std::sync::Arc;

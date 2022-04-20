@@ -11,7 +11,7 @@ docker build -t citacloud/executor_evm .
 
 ```
 $ executor -h
-CITA-CLOUD EVM EXECUTOR 6.3.3
+CITA-CLOUD EVM EXECUTOR 6.4.0
 Yieazy <yuitta@163.com>:Rivtower Technologies <contact@rivtower.com>
 Supply evm interpreter
 
@@ -23,19 +23,8 @@ OPTIONS:
     -V, --version    Print version information
 
 SUBCOMMANDS:
-    git     print information from git
     help    Print this message or the help of the given subcommand(s)
     run     run this service
-```
-
-### executor-git
-
-打印`git`相关的信息。
-
-```
-$ executor git
-git version: 0.2.0-alpha.2-80-gaa409bc
-homepage: https://github.com/cita-cloud/executor_evm
 ```
 
 ### executor-run

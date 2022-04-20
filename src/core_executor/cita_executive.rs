@@ -23,6 +23,7 @@ use cita_vm::{
     state::{State, StateObjectInfo},
     summary, Error as VmError,
 };
+use log::{debug, info, trace};
 use rlp::RlpStream;
 use std::cell::RefCell;
 use std::sync::Arc;

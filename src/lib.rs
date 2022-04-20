@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #[macro_use]
-extern crate cita_logger as logger;
-#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;

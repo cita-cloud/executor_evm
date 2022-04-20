@@ -34,6 +34,7 @@ use cita_database::RocksDB;
 use cita_vm::state::{State as CitaState, StateObjectInfo};
 use crossbeam_channel::{Receiver, Sender};
 use libproto::{ConsensusConfig, ExecutedResult};
+use log::{error, info, trace};
 use std::cell::RefCell;
 use std::convert::{From, Into};
 use std::fmt;

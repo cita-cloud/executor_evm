@@ -208,7 +208,6 @@ mod tests {
         let x = vec![0u8, 127, 255];
         let x_str = "007fff";
         assert_eq!(x.lower_hex(), x_str.to_string());
-        assert_eq!(x.lower_hex_with_0x(), x_str.to_string());
     }
 
     #[test]
@@ -220,7 +219,6 @@ mod tests {
         ];
         for (x_uint, x_str) in validation.into_iter() {
             assert_eq!(U128::from(x_uint).lower_hex(), x_str.to_string());
-            assert_eq!(U128::from(x_uint).lower_hex_with_0x(), x_str.to_string());
         }
     }
 

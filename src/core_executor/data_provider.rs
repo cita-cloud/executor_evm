@@ -19,6 +19,7 @@ use cita_vm::evm;
 use cita_vm::state::{State, StateObjectInfo};
 use hashbrown::{HashMap, HashSet};
 use hasher::Hasher;
+use log::debug;
 use std::cell::RefCell;
 use std::sync::Arc;
 

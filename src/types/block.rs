@@ -23,6 +23,7 @@ use cita_cloud_proto::blockchain::{
 use libproto::blockchain::{
     BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
 };
+use log::trace;
 use rlp::*;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};

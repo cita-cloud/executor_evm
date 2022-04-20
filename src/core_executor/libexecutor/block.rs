@@ -36,6 +36,7 @@ use cita_vm::{
 };
 use hashable::Hashable;
 use libproto::executor::{ExecutedInfo, ReceiptWithOption};
+use log::{error, trace};
 use rlp::Encodable;
 
 pub struct ExecutedBlock {

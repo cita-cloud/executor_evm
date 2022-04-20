@@ -35,6 +35,7 @@ use bloomchain::{Bloom, Config as BloomChainConfig, Number as BloomChainNumber};
 use cita_database as cita_db;
 use cita_database::{Database, RocksDB};
 use libproto::{executor::ExecutedResult, FullTransaction};
+use log::{debug, info, trace, warn};
 use rlp::{self, decode, Encodable};
 use std::collections::HashMap;
 use std::convert::Into;

@@ -15,8 +15,6 @@
 #[macro_use]
 extern crate util;
 #[macro_use]
-extern crate cita_logger as logger;
-#[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate lazy_static;
@@ -37,9 +35,9 @@ use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
-use git_version::git_version;
 use hashable::Hashable;
 use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
+use log::{debug, info, trace, warn};
 use prost::Message;
 use status_code::StatusCode;
 use std::path::Path;
@@ -49,12 +47,6 @@ use types::block::OpenBlock;
 use types::block_number::{BlockTag, Tag};
 // extern crate enum_primitive;
 
-const GIT_VERSION: &str = git_version!(
-    args = ["--tags", "--always", "--dirty=-modified"],
-    fallback = "unknown"
-);
-const GIT_HOMEPAGE: &str = "https://github.com/cita-cloud/executor_evm";
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     ::std::env::set_var("RUST_BACKTRACE", "full");
     set_panic_handler();
@@ -63,7 +55,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .author(crate_authors!())
         .version(crate_version!())
         .about("Supply evm interpreter")
-        .subcommand(Command::new("git").about("print information from git"))
         .subcommand(
             Command::new("run")
                 .about("run this service")
@@ -84,10 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .get_matches();
 
-    if let Some(_args) = matches.subcommand_matches("git") {
-        println!("git version: {}", GIT_VERSION);
-        println!("homepage: {}", GIT_HOMEPAGE);
-    } else if let Some(opts) = matches.subcommand_matches("run") {
+    if let Some(opts) = matches.subcommand_matches("run") {
         let config = ExecutorConfig::new(opts.value_of("config").unwrap_or("config.toml"));
 
         // init log4rs

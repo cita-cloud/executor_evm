@@ -57,9 +57,9 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 
-cloud-util = { git = "https://github.com/cita-cloud/cloud-util" }
-cita_cloud_proto = { git = "https://github.com/cita-cloud/cita_cloud_proto" }
-status_code = { package = "cloud-code", git = "https://github.com/cita-cloud/status_code" }
+cloud-util = "0.2"
+cita_cloud_proto = "=6.4.0"
+status_code = { package = "cloud-code", version = "0.2" }
 
 [dependencies.cita-vm]
 version = "0.3"

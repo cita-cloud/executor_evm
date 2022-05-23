@@ -78,3 +78,11 @@ sha3hash = ["hashable/sha3hash", "libproto/sha3hash"]
 sm3hash = ["hashable/sm3hash", "libproto/sm3hash"]
 hashlib-keccak = ["tiny-keccak"]
 hashlib-sha3 = ["sha3"]
+
+[profile.release.package."*"]
+# Set the default for dependencies.
+debug = 0
+
+[profile.release]
+# Add debug info -- line tables only
+debug = 1

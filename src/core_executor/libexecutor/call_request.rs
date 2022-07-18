@@ -26,6 +26,8 @@ pub struct CallRequest {
     pub to: Address,
     /// Data
     pub data: Option<Bytes>,
+    /// Height
+    pub height: Option<u64>,
 }
 
 impl From<Call> for CallRequest {
@@ -42,6 +44,11 @@ impl From<Call> for CallRequest {
             } else {
                 Some(call.data)
             },
+            height: if let Ok(height) = call.height.parse::<u64>() {
+                Some(height)
+            } else {
+                None
+            }
         }
     }
 }
@@ -60,6 +67,11 @@ impl From<CloudCallRequest> for CallRequest {
             } else {
                 Some(call.method)
             },
+            height: if call.height == 0 {
+                None
+            } else {
+                Some(call.height)
+            }
         }
     }
 }

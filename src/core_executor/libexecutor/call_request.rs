@@ -48,7 +48,7 @@ impl From<Call> for CallRequest {
                 Some(height)
             } else {
                 None
-            }
+            },
         }
     }
 }
@@ -71,7 +71,7 @@ impl From<CloudCallRequest> for CallRequest {
                 None
             } else {
                 Some(call.height)
-            }
+            },
         }
     }
 }

@@ -189,7 +189,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         Ok(cloud_call_request) => {
                             debug!("get call request: {:x?}", cloud_call_request);
                             let call_request = CallRequest::from(cloud_call_request);
-                            let tag = if let None = call_request.height {
+                            let tag = if call_request.height.is_none() {
                                 BlockTag::Tag(Tag::Pending)
                             } else {
                                 BlockTag::Height(call_request.height.unwrap())

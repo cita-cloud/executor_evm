@@ -188,7 +188,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     match cloud_call_request {
                         Ok(cloud_call_request) => {
                             debug!("get call request: {:x?}", cloud_call_request);
-                            let call_result = executor.eth_call(CallRequest::from(cloud_call_request), BlockTag::Tag(Tag::Pending));
+                            let call_request = CallRequest::from(cloud_call_request);
+                            let tag = if call_request.height.is_none() {
+                                BlockTag::Tag(Tag::Pending)
+                            } else {
+                                BlockTag::Height(call_request.height.unwrap())
+                            };
+                            let call_result = executor.eth_call(call_request, tag);
                             let _ = call_resp_sender.send(call_result);
                         },
                         Err(e) => panic!("receive call_req_receiver error: {}", e),

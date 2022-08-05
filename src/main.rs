@@ -30,6 +30,7 @@ use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use cita_cloud_proto::health_check::health_server::HealthServer;
 use clap::{crate_authors, crate_version, Arg, Command};
+use cloud_util::metrics::{run_metrics_exporter, MiddlewareLayer};
 use core_executor::libexecutor::call_request::CallRequest;
 use core_executor::libexecutor::command::Commander;
 use core_executor::libexecutor::executor::Executor;
@@ -87,7 +88,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap();
 
         let grpc_port = config.executor_port.to_string();
-        info!("grpc port of this service: {}", grpc_port);
+        info!("grpc port of executor_evm: {}", grpc_port);
 
         let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
 
@@ -227,13 +228,42 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 };
                 let executor_svc = ExecutorServiceServer::new(inner.clone());
                 let rpc_svc = RpcServiceServer::new(inner);
-                Server::builder()
-                    .add_service(executor_svc)
-                    .add_service(rpc_svc)
-                    .add_service(HealthServer::new(HealthCheckServer {}))
-                    .serve(executor_addr)
-                    .await
-                    .unwrap();
+
+                let layer = if config.enable_metrics {
+                    tokio::spawn(async move {
+                        run_metrics_exporter(config.metrics_port).await.unwrap();
+                    });
+
+                    Some(
+                        tower::ServiceBuilder::new()
+                            .layer(MiddlewareLayer::new(config.metrics_buckets))
+                            .into_inner(),
+                    )
+                } else {
+                    None
+                };
+
+                info!("start executor_evm grpc server");
+                if layer.is_some() {
+                    info!("metrics on");
+                    Server::builder()
+                        .layer(layer.unwrap())
+                        .add_service(executor_svc)
+                        .add_service(rpc_svc)
+                        .add_service(HealthServer::new(HealthCheckServer {}))
+                        .serve(executor_addr)
+                        .await
+                        .unwrap();
+                } else {
+                    info!("metrics off");
+                    Server::builder()
+                        .add_service(executor_svc)
+                        .add_service(rpc_svc)
+                        .add_service(HealthServer::new(HealthCheckServer {}))
+                        .serve(executor_addr)
+                        .await
+                        .unwrap();
+                }
             });
 
         handle.join().expect("unreachable!");

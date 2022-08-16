@@ -17,14 +17,14 @@ use crate::types::H256;
 pub type TransactionHash = H256;
 pub type BlockNumber = u64;
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum BlockTag {
     Tag(Tag),
     Height(u64),
     Hash(H256),
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy)]
 pub enum Tag {
     Latest,
     Earliest,

@@ -14,7 +14,7 @@
 
 use std::fmt;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum AuthenticationError {
     NoTransactionPermission,
     NoContractPermission,

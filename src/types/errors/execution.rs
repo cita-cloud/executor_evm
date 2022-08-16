@@ -19,7 +19,7 @@ use super::call::CallError;
 use super::native::NativeError;
 use cita_vm::state::Error as StateError;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ExecutionError {
     Internal(String),
     Authentication(AuthenticationError),

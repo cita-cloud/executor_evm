@@ -18,7 +18,7 @@ use cita_cloud_proto::executor::CallRequest as CloudCallRequest;
 use libproto::request::Call;
 
 /// Call request
-#[derive(Debug, Default, PartialEq)]
+#[derive(Debug, Default, Eq, PartialEq)]
 pub struct CallRequest {
     /// From
     pub from: Option<Address>,

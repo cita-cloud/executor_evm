@@ -31,7 +31,7 @@ pub const STORE_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010000";
 pub const ABI_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010001";
 pub const AMEND_ADDRESS: &str = "ffffffffffffffffffffffffffffffffff010002";
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum Error {
     ParseError,
     InvalidHash,

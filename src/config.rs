@@ -25,6 +25,12 @@ pub struct ExecutorConfig {
     pub db_path: String,
 
     pub sync_mode: String,
+
+    pub enable_metrics: bool,
+
+    pub metrics_port: u16,
+
+    pub metrics_buckets: Vec<f64>,
 }
 
 impl Default for ExecutorConfig {
@@ -34,6 +40,11 @@ impl Default for ExecutorConfig {
             eth_compatibility: false,
             db_path: "data".to_string(),
             sync_mode: "archive".to_string(),
+            enable_metrics: true,
+            metrics_port: 60002,
+            metrics_buckets: vec![
+                0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0,
+            ],
         }
     }
 }

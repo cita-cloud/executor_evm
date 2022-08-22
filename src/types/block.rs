@@ -28,7 +28,7 @@ use rlp::*;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct OpenBlock {
     /// The header of this block.
     pub header: OpenHeader,
@@ -84,7 +84,7 @@ impl OpenBlock {
 }
 
 /// A block, encoded as it is on the block chain.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct Block {
     /// The header of this block.
     pub header: Header,
@@ -153,7 +153,7 @@ impl Block {
 }
 
 /// body of block.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct BlockBody {
     /// The transactions in this body.
     pub transactions: Vec<SignedTransaction>,

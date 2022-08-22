@@ -76,7 +76,7 @@ impl Log {
 }
 
 /// Log localized.
-#[derive(Default, Debug, PartialEq, Clone)]
+#[derive(Default, Debug, Eq, PartialEq, Clone)]
 pub struct LocalizedLog {
     pub log: Log,
     pub block_hash: H256,

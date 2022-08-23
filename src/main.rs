@@ -213,58 +213,61 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         });
 
-        tokio::runtime::Builder::new_multi_thread()
+        let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
-            .unwrap()
-            .block_on(async {
-                let inner = ExecutorServer {
-                    exec_req_sender,
-                    exec_resp_receiver,
-                    call_req_sender,
-                    call_resp_receiver,
-                    command_req_sender,
-                    command_resp_receiver,
-                };
-                let executor_svc = ExecutorServiceServer::new(inner.clone());
-                let rpc_svc = RpcServiceServer::new(inner);
+            .unwrap();
 
-                let layer = if config.enable_metrics {
-                    tokio::spawn(async move {
-                        run_metrics_exporter(config.metrics_port).await.unwrap();
-                    });
+        runtime.spawn(cloud_util::signal::handle_signals());
 
-                    Some(
-                        tower::ServiceBuilder::new()
-                            .layer(MiddlewareLayer::new(config.metrics_buckets))
-                            .into_inner(),
-                    )
-                } else {
-                    None
-                };
+        runtime.block_on(async {
+            let inner = ExecutorServer {
+                exec_req_sender,
+                exec_resp_receiver,
+                call_req_sender,
+                call_resp_receiver,
+                command_req_sender,
+                command_resp_receiver,
+            };
+            let executor_svc = ExecutorServiceServer::new(inner.clone());
+            let rpc_svc = RpcServiceServer::new(inner);
 
-                info!("start executor_evm grpc server");
-                if layer.is_some() {
-                    info!("metrics on");
-                    Server::builder()
-                        .layer(layer.unwrap())
-                        .add_service(executor_svc)
-                        .add_service(rpc_svc)
-                        .add_service(HealthServer::new(HealthCheckServer {}))
-                        .serve(executor_addr)
-                        .await
-                        .unwrap();
-                } else {
-                    info!("metrics off");
-                    Server::builder()
-                        .add_service(executor_svc)
-                        .add_service(rpc_svc)
-                        .add_service(HealthServer::new(HealthCheckServer {}))
-                        .serve(executor_addr)
-                        .await
-                        .unwrap();
-                }
-            });
+            let layer = if config.enable_metrics {
+                tokio::spawn(async move {
+                    run_metrics_exporter(config.metrics_port).await.unwrap();
+                });
+
+                Some(
+                    tower::ServiceBuilder::new()
+                        .layer(MiddlewareLayer::new(config.metrics_buckets))
+                        .into_inner(),
+                )
+            } else {
+                None
+            };
+
+            info!("start executor_evm grpc server");
+            if layer.is_some() {
+                info!("metrics on");
+                Server::builder()
+                    .layer(layer.unwrap())
+                    .add_service(executor_svc)
+                    .add_service(rpc_svc)
+                    .add_service(HealthServer::new(HealthCheckServer {}))
+                    .serve(executor_addr)
+                    .await
+                    .unwrap();
+            } else {
+                info!("metrics off");
+                Server::builder()
+                    .add_service(executor_svc)
+                    .add_service(rpc_svc)
+                    .add_service(HealthServer::new(HealthCheckServer {}))
+                    .serve(executor_addr)
+                    .await
+                    .unwrap();
+            }
+        });
 
         handle.join().expect("unreachable!");
     }

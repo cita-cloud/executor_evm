@@ -34,8 +34,10 @@ use bloomchain::group::{
 use bloomchain::{Bloom, Config as BloomChainConfig, Number as BloomChainNumber};
 use cita_database as cita_db;
 use cita_database::{Database, RocksDB};
+use hashable::Hashable;
 use libproto::{executor::ExecutedResult, FullTransaction};
 use log::{debug, info, trace, warn};
+use prost::Message;
 use rlp::{self, decode, Encodable};
 use std::collections::HashMap;
 use std::convert::Into;
@@ -416,7 +418,7 @@ impl Chain {
                 let mut receipts = res.receipts;
                 receipts.truncate(tx_index + 1);
 
-                let last_receipt = receipts.pop().expect("Current receipt is provided; qed");
+                let last_receipt = receipts.pop().expect("Current receipt is provided");
                 let prior_quota_used = receipts.last().map_or(0.into(), |r| r.quota_used);
                 let log_position_block = receipts.iter().fold(0, |acc, r| acc + r.logs.len());
 
@@ -447,10 +449,23 @@ impl Chain {
                         quota_used = stx.gas;
                     }
 
+                    let block_header = self
+                        .block_header(BlockTag::Height(block_number))
+                        .expect("Can't get block header");
+                    let cloud_header = block_header
+                        .open_header()
+                        .to_cloud_protobuf()
+                        .header
+                        .unwrap();
+                    let mut block_header_bytes = Vec::with_capacity(cloud_header.encoded_len());
+                    cloud_header
+                        .encode(&mut block_header_bytes)
+                        .expect("get_block_hash: encode block header failed");
+
                     let receipt = RichReceipt {
                         transaction_hash: tx_hash,
                         transaction_index: tx_index,
-                        block_hash,
+                        block_hash: block_header_bytes.crypt_hash(),
                         block_number,
                         cumulative_quota_used: last_receipt.quota_used,
                         quota_used,

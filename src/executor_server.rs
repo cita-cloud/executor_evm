@@ -38,10 +38,7 @@ pub struct ExecutorServer {
 
 #[tonic::async_trait]
 impl ExecutorService for ExecutorServer {
-    async fn exec(
-        &self,
-        request: Request<CloudBlock>,
-    ) -> std::result::Result<Response<HashResponse>, Status> {
+    async fn exec(&self, request: Request<CloudBlock>) -> Result<Response<HashResponse>, Status> {
         let block = request.into_inner();
         debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
@@ -122,7 +119,7 @@ impl ExecutorService for ExecutorServer {
     async fn call(
         &self,
         request: Request<CloudCallRequest>,
-    ) -> std::result::Result<Response<CloudCallResponse>, Status> {
+    ) -> Result<Response<CloudCallResponse>, Status> {
         let cloud_call_request = request.into_inner();
         let _ = self.call_req_sender.send(cloud_call_request);
 

@@ -15,7 +15,7 @@ RUN make release
 FROM debian:bullseye-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libssl1.1 && \
-    rm -rf  /var/log/*log /var/lib/apt/lists/* /var/log/apt/* /var/lib/dpkg/*-old /var/cache/debconf/*-old \
+    rm -rf  /var/log/*log /var/lib/apt/lists/* /var/log/apt/* /var/lib/dpkg/*-old /var/cache/debconf/*-old
 RUN useradd -m chain
 USER chain
 COPY --from=buildstage /build/target/release/executor /usr/bin/

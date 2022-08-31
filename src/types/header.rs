@@ -103,7 +103,7 @@ impl OpenHeader {
     }
 
     pub fn to_cloud_protobuf(&self) -> CloudBlock {
-        let proposal = if self.number == 0 {
+        let proposer = if self.number == 0 {
             vec![0; 32]
         } else {
             self.proposer.0.to_vec()
@@ -115,10 +115,11 @@ impl OpenHeader {
                 timestamp: self.timestamp,
                 height: self.number,
                 transactions_root: self.transactions_root.0.to_vec(),
-                proposer: proposal,
+                proposer,
             }),
             body: None,
             proof: vec![],
+            state_root: vec![],
         }
     }
 

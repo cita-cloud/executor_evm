@@ -129,7 +129,7 @@ impl ExecutedBlock {
 
         let block_data_provider = EvmBlockDataProvider::new(context.clone());
 
-        let _tx_quota_used =
+        let tx_quota_used =
             match CitaExecutive::new(Arc::new(block_data_provider), self.state.clone(), &context)
                 .exec(t)
             {
@@ -250,6 +250,8 @@ impl ExecutedBlock {
                     tx_quota_used
                 }
             };
+        // Note: current_quota_used: Whole quota used for the ExecutedBlock.
+        self.current_quota_used += tx_quota_used;
     }
 
     #[allow(dead_code)]

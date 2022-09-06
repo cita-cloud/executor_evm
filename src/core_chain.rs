@@ -618,7 +618,7 @@ impl Chain {
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
             .map(|res| {
-                let block_receipts: BlockReceipts = rlp::decode(&res).unwrap();
+                let block_receipts: BlockReceipts = decode(&res).unwrap();
                 block_receipts
             })
     }

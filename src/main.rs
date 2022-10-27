@@ -63,29 +63,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Arg::new("config")
                         .short('c')
                         .long("config")
-                        .takes_value(true)
                         .help("config file path"),
                 )
                 .arg(
                     Arg::new("log")
                         .short('l')
                         .long("log")
-                        .takes_value(true)
                         .help("log config file path"),
                 ),
         )
         .get_matches();
 
     if let Some(opts) = matches.subcommand_matches("run") {
-        let config = ExecutorConfig::new(opts.value_of("config").unwrap_or("config.toml"));
+        let config_path = if let Some(c) = opts.get_one::<String>("config") {
+            c.clone()
+        } else {
+            "config.toml".to_string()
+        };
+        let config = ExecutorConfig::new(config_path.as_str());
 
         // init log4rs
-        log4rs::init_file(
-            opts.value_of("log").unwrap_or("executor-log4rs.yaml"),
-            Default::default(),
-        )
-        .map_err(|e| println!("log init err: {}", e))
-        .unwrap();
+        let log_path = if let Some(c) = opts.get_one::<String>("log") {
+            c.clone()
+        } else {
+            "executor-log4rs.yaml".to_string()
+        };
+        log4rs::init_file(log_path, Default::default())
+            .map_err(|e| println!("log init err: {}", e))
+            .unwrap();
 
         let grpc_port = config.executor_port.to_string();
         info!("grpc port of executor_evm: {}", grpc_port);

@@ -1,3 +1,4 @@
+use crate::core_executor::libexecutor::call_request::CallRequest;
 use crate::core_executor::libexecutor::command::{Command, CommandResp};
 use crate::core_executor::libexecutor::ExecutedResult;
 use crate::types::block::OpenBlock;
@@ -10,7 +11,7 @@ use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashR
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
-    Nonce as CloudNonce, Receipt as CloudReceipt,
+    ByteQuota as CloudByteQuota, Nonce as CloudNonce, Receipt as CloudReceipt,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -223,6 +224,24 @@ impl RpcService for ExecutorServer {
                 Ok(Response::new(CloudByteAbi { bytes_abi }))
             }
             _ => Err(Status::new(Code::InvalidArgument, "Not get the abi")),
+        }
+    }
+
+    async fn estimate_quota(
+        &self,
+        request: Request<CloudCallRequest>,
+    ) -> Result<Response<CloudByteQuota>, Status> {
+        let call_request = CallRequest::from(request.into_inner());
+        let _ = self.command_req_sender.send(Command::EstimateQuota(
+            call_request,
+            BlockTag::Tag(Tag::Pending),
+        ));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::EstimateQuota(Ok(bytes_quota))) => {
+                Ok(Response::new(CloudByteQuota { bytes_quota }))
+            }
+            _ => Err(Status::new(Code::InvalidArgument, "estimate quota failed")),
         }
     }
 }

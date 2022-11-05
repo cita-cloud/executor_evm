@@ -261,7 +261,7 @@ impl Commander for Executor {
 
     fn estimate_quota(&self, request: CallRequest, id: BlockTag) -> Result<Bytes, String> {
         // The estimated transaction cost cannot exceed BQL
-        let max_quota = U256::max_value();
+        let max_quota = U256::from(u64::MAX);
         let precision = U256::from(1024);
 
         let signed = self.sign_call(request);
@@ -366,9 +366,14 @@ impl Commander for Executor {
 
     fn sign_call(&self, request: CallRequest) -> SignedTransaction {
         let from = request.from.unwrap_or_else(Address::zero);
+        let action = if request.to.0 == [0; 20] {
+            Action::Create
+        } else {
+            Action::Call(request.to)
+        };
         Transaction {
             nonce: "".to_string(),
-            action: Action::Call(request.to),
+            action,
             gas: U256::from(50_000_000),
             gas_price: U256::zero(),
             value: U256::zero(),

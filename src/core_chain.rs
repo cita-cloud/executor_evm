@@ -141,7 +141,7 @@ impl Chain {
             elements_per_index: LOG_BLOOMS_ELEMENTS_PER_INDEX,
         };
 
-        let header = get_chain(&*db).unwrap_or_default();
+        let header = get_chain(&db).unwrap_or_default();
         debug!("get chain head is : {:?}", header);
         let current_height = AtomicUsize::new(header.number() as usize);
         info!("current_height: {:?}", current_height);

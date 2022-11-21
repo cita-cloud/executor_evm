@@ -17,13 +17,13 @@ use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
+use cita_cloud_proto::status_code::StatusCodeEnum;
 use crossbeam_channel::{Receiver, Sender};
 use log::{debug, info, warn};
-use status_code::StatusCode;
 use tonic::{Code, Request, Response, Status};
 
 pub struct ExecutedFinal {
-    pub status: StatusCode,
+    pub status: StatusCodeEnum,
     pub result: ExecutedResult,
 }
 
@@ -61,7 +61,7 @@ impl ExecutorService for ExecutorServer {
                     ),
                     None => {
                         return Ok(Response::new(HashResponse {
-                            status: Some(StatusCode::NoneBlockBody.into()),
+                            status: Some(StatusCodeEnum::NoneBlockBody.into()),
                             hash: None,
                         }));
                     }
@@ -72,7 +72,7 @@ impl ExecutorService for ExecutorServer {
         if self.exec_req_sender.send(open_blcok).is_err() {
             warn!("exec: sending on a disconnected channel");
             return Ok(Response::new(HashResponse {
-                status: Some(StatusCode::InternalChannelDisconnected.into()),
+                status: Some(StatusCodeEnum::InternalChannelDisconnected.into()),
                 hash: None,
             }));
         }
@@ -88,7 +88,7 @@ impl ExecutorService for ExecutorServer {
                         hex::encode(state_root)
                     );
                     Ok(Response::new(HashResponse {
-                        status: Some(StatusCode::Success.into()),
+                        status: Some(StatusCodeEnum::Success.into()),
                         hash: Some(CloudHash {
                             hash: state_root.to_vec(),
                         }),
@@ -110,7 +110,7 @@ impl ExecutorService for ExecutorServer {
             Err(recv_error) => {
                 warn!("exec: recv error: {}", recv_error.to_string());
                 Ok(Response::new(HashResponse {
-                    status: Some(StatusCode::InternalChannelDisconnected.into()),
+                    status: Some(StatusCodeEnum::InternalChannelDisconnected.into()),
                     hash: None,
                 }))
             }

@@ -29,6 +29,7 @@ use crate::panic_hook::set_panic_handler;
 use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use cita_cloud_proto::health_check::health_server::HealthServer;
+use cita_cloud_proto::status_code::StatusCodeEnum;
 use clap::{crate_authors, crate_version, Arg, Command};
 use cloud_util::metrics::{run_metrics_exporter, MiddlewareLayer};
 use core_executor::libexecutor::call_request::CallRequest;
@@ -40,7 +41,6 @@ use hashable::Hashable;
 use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
 use log::{debug, info, trace, warn};
 use prost::Message;
-use status_code::StatusCode;
 use std::path::Path;
 use std::thread;
 use tonic::transport::Server;
@@ -122,7 +122,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 let mut block_header_bytes = Vec::with_capacity(cloud_header.encoded_len());
                                 cloud_header.encode(&mut block_header_bytes).map_err(|_| {
                                     warn!("encode block cloud_header failed");
-                                    StatusCode::EncodeError
+                                    StatusCodeEnum::EncodeError
                                 }).unwrap();
                                 if &block_header_bytes.crypt_hash() == open_block.parent_hash() {
                                     let mut close_block = executor.before_fsm(open_block.clone());
@@ -130,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     close_block.clear_cache();
                                     executor.core_chain.set_db_result(&executed_result, &open_block);
                                     let _ = exec_resp_sender.send(ExecutedFinal{
-                                        status: StatusCode::Success,
+                                        status: StatusCodeEnum::Success,
                                         result: executed_result,
                                     });
                                     continue;
@@ -160,7 +160,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             open_block.number()
                                         );
                                         exec_resp_sender.send(ExecutedFinal{
-                                            status: StatusCode::ReenterBlock,
+                                            status: StatusCodeEnum::ReenterBlock,
                                             result: exc_res,
                                         }).unwrap();
                                     } else {
@@ -169,7 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                             open_block.number()
                                         );
                                         exec_resp_sender.send(ExecutedFinal{
-                                            status: StatusCode::ReenterInvalidBlock,
+                                            status: StatusCodeEnum::ReenterInvalidBlock,
                                             result: exc_res,
                                         }).unwrap();
                                     }
@@ -180,7 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     close_block.clear_cache();
                                     executor.core_chain.set_db_result(&executed_result, &open_block);
                                     let _ = exec_resp_sender.send(ExecutedFinal{
-                                        status: StatusCode::Success,
+                                        status: StatusCodeEnum::Success,
                                         result: executed_result,
                                     });
                                 }

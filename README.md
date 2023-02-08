@@ -11,20 +11,17 @@ docker build -t citacloud/executor_evm .
 
 ```
 $ executor -h
-CITA-CLOUD EVM EXECUTOR 6.6.0
-Yieazy <yuitta@163.com>:Rivtower Technologies <contact@rivtower.com>
 Supply evm interpreter
 
-USAGE:
-    executor [SUBCOMMAND]
+Usage: executor [COMMAND]
 
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
+Commands:
+  run   run this service
+  help  Print this message or the help of the given subcommand(s)
 
-SUBCOMMANDS:
-    help    Print this message or the help of the given subcommand(s)
-    run     run this service
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
 ```
 
 ### executor-run
@@ -33,15 +30,13 @@ SUBCOMMANDS:
 
 ```
 $ executor run -h
-executor-run
 run this service
 
-USAGE:
-    executor run [OPTIONS]
+Usage: executor run [OPTIONS]
 
-OPTIONS:
-    -c, --config <config>    config file path
-    -h, --help               Print help information
+Options:
+  -c, --config <config>  config file path
+  -h, --help             Print help
 ```
 
 参数：

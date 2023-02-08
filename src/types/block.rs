@@ -222,6 +222,7 @@ impl BlockBody {
             tx_indexes.insert(tx_hash, index);
         }
 
+        trace!("closed block transactions {:?}", tx_indexes);
         tx_indexes
     }
 }

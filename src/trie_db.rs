@@ -33,7 +33,7 @@ impl From<&str> for NodeType {
         match journaldb_type {
             "archive" => NodeType::Archive,
             "full" => NodeType::Full,
-            str => panic!("input archive or full, your input: {}", str),
+            str => panic!("input archive or full, your input: {str}"),
         }
     }
 }

@@ -39,7 +39,8 @@ use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use hashable::Hashable;
 use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
-use log::{debug, info, trace, warn};
+#[macro_use]
+extern crate tracing as logger;
 use prost::Message;
 use std::path::Path;
 use std::thread;
@@ -57,20 +58,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .version(crate_version!())
         .about("Supply evm interpreter")
         .subcommand(
-            Command::new("run")
-                .about("run this service")
-                .arg(
-                    Arg::new("config")
-                        .short('c')
-                        .long("config")
-                        .help("config file path"),
-                )
-                .arg(
-                    Arg::new("log")
-                        .short('l')
-                        .long("log")
-                        .help("log config file path"),
-                ),
+            Command::new("run").about("run this service").arg(
+                Arg::new("config")
+                    .short('c')
+                    .long("config")
+                    .help("config file path"),
+            ),
         )
         .get_matches();
 
@@ -82,20 +75,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let config = ExecutorConfig::new(config_path.as_str());
 
-        // init log4rs
-        let log_path = if let Some(c) = opts.get_one::<String>("log") {
-            c.clone()
-        } else {
-            "executor-log4rs.yaml".to_string()
-        };
-        log4rs::init_file(log_path, Default::default())
-            .map_err(|e| println!("log init err: {}", e))
+        // init tracer
+        cloud_util::tracer::init_tracer(config.domain.clone(), &config.log_config)
+            .map_err(|e| println!("tracer init err: {e}"))
             .unwrap();
 
         let grpc_port = config.executor_port.to_string();
-        info!("grpc port of executor_evm: {}", grpc_port);
+        info!("grpc port of executor_evm: {grpc_port}");
 
-        let executor_addr = format!("0.0.0.0:{}", grpc_port).parse()?;
+        let executor_addr = format!("0.0.0.0:{grpc_port}").parse()?;
 
         // db_path must be relative path
         assert!(
@@ -187,7 +175,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             } else { panic!("current height: {}, open_block number: {}",
                                 executor.get_current_height(), open_block.number()); }
                         },
-                        Err(e) => panic!("receive exec_req_receiver error: {}", e),
+                        Err(e) => panic!("receive exec_req_receiver error: {e}"),
                     }
                 },
                 recv(call_req_receiver) -> cloud_call_request => {
@@ -203,7 +191,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let call_result = executor.eth_call(call_request, tag);
                             let _ = call_resp_sender.send(call_result);
                         },
-                        Err(e) => panic!("receive call_req_receiver error: {}", e),
+                        Err(e) => panic!("receive call_req_receiver error: {e}"),
                     }
                 },
                 recv(command_req_receiver) -> command_request => {
@@ -212,7 +200,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             trace!("executor receive {}", command_request);
                             let _ = command_resp_sender.send(executor.operate(command_request));
                         },
-                        Err(e) => panic!("receive command_req_receiver error: {}", e),
+                        Err(e) => panic!("receive command_req_receiver error: {e}"),
                     }
                 }
             }

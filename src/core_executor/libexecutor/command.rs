@@ -34,7 +34,6 @@ use cita_database::RocksDB;
 use cita_vm::state::{State as CitaState, StateObjectInfo};
 use crossbeam_channel::{Receiver, Sender};
 use libproto::{ConsensusConfig, ExecutedResult};
-use log::{error, info, trace};
 use std::cell::RefCell;
 use std::convert::{From, Into};
 use std::fmt;
@@ -255,7 +254,7 @@ impl Commander for Executor {
                 }
                 Ok(b.output)
             }
-            Err(e) => Err(format!("Call Error {}", e)),
+            Err(e) => Err(format!("Call Error {e}")),
         }
     }
 
@@ -315,8 +314,7 @@ impl Commander for Executor {
         let lower = if !run_ok {
             trace!("estimate_quota failed with {}.", max_quota);
             return Err(format!(
-                "Requires quota higher than upper limit({}) or some internal errors",
-                max_quota
+                "Requires quota higher than upper limit({max_quota}) or some internal errors"
             ));
         } else {
             quota_used

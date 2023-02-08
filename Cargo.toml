@@ -20,8 +20,6 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-log = "0.4"
-log4rs = { version = "1.2", features = ["gzip"] }
 tonic = "0.8"
 prost = "0.11"
 cita-database = "0.3"
@@ -57,9 +55,10 @@ rlp = "0.5"
 util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
+tracing = "0.1"
 
-cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/cloud-common-rs.git" }
-cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs.git" }
+cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/cloud-common-rs" }
+cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs" }
 
 [dependencies.cita-vm]
 version = "0.3"

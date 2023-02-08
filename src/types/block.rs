@@ -23,7 +23,6 @@ use cita_cloud_proto::blockchain::{
 use libproto::blockchain::{
     BlockBody as ProtoBlockBody, SignedTransaction as ProtoSignedTransaction,
 };
-use log::trace;
 use rlp::*;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
@@ -223,7 +222,6 @@ impl BlockBody {
             tx_indexes.insert(tx_hash, index);
         }
 
-        trace!("closed block transactions {:?}", tx_indexes);
         tx_indexes
     }
 }

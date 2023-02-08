@@ -19,7 +19,6 @@ use cita_cloud_proto::executor::{
 };
 use cita_cloud_proto::status_code::StatusCodeEnum;
 use crossbeam_channel::{Receiver, Sender};
-use log::{debug, info, warn};
 use tonic::{Code, Request, Response, Status};
 
 pub struct ExecutedFinal {
@@ -39,7 +38,9 @@ pub struct ExecutorServer {
 
 #[tonic::async_trait]
 impl ExecutorService for ExecutorServer {
+    #[instrument(skip_all)]
     async fn exec(&self, request: Request<CloudBlock>) -> Result<Response<HashResponse>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let block = request.into_inner();
         debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
@@ -117,11 +118,15 @@ impl ExecutorService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn call(
         &self,
         request: Request<CloudCallRequest>,
     ) -> Result<Response<CloudCallResponse>, Status> {
+        cloud_util::tracer::set_parent(&request);
+
         let cloud_call_request = request.into_inner();
+        debug!("get call request: {:x?}", cloud_call_request);
         let _ = self.call_req_sender.send(cloud_call_request);
 
         match self.call_resp_receiver.recv() {
@@ -136,11 +141,14 @@ impl ExecutorService for ExecutorServer {
 
 #[tonic::async_trait]
 impl RpcService for ExecutorServer {
+    #[instrument(skip_all)]
     async fn get_transaction_receipt(
         &self,
         request: Request<CloudHash>,
     ) -> Result<Response<CloudReceipt>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let cloud_hash = request.into_inner();
+        debug!("get_transaction_receipt request: {:x?}", cloud_hash);
         let _ = self
             .command_req_sender
             .send(Command::ReceiptAt(H256::from_slice(
@@ -155,11 +163,14 @@ impl RpcService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn get_code(
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteCode>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let cloud_address = request.into_inner();
+        debug!("get_code request: {:x?}", cloud_address);
         let _ = self.command_req_sender.send(Command::CodeAt(
             Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
@@ -173,11 +184,14 @@ impl RpcService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn get_balance(
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudBalance>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let cloud_address = request.into_inner();
+        debug!("get_balance request: {:x?}", cloud_address);
         let _ = self.command_req_sender.send(Command::BalanceAt(
             Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
@@ -189,11 +203,14 @@ impl RpcService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn get_transaction_count(
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudNonce>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let cloud_address = request.into_inner();
+        debug!("get_transaction_count request: {:x?}", cloud_address);
         let _ = self.command_req_sender.send(Command::NonceAt(
             Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
@@ -209,11 +226,14 @@ impl RpcService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn get_abi(
         &self,
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteAbi>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let cloud_address = request.into_inner();
+        debug!("get_abi request: {:x?}", cloud_address);
         let _ = self.command_req_sender.send(Command::AbiAt(
             Address::from_slice(cloud_address.address.as_slice()),
             BlockTag::Tag(Tag::Pending),
@@ -227,11 +247,14 @@ impl RpcService for ExecutorServer {
         }
     }
 
+    #[instrument(skip_all)]
     async fn estimate_quota(
         &self,
         request: Request<CloudCallRequest>,
     ) -> Result<Response<CloudByteQuota>, Status> {
+        cloud_util::tracer::set_parent(&request);
         let call_request = CallRequest::from(request.into_inner());
+        debug!("estimate_quota request: {:x?}", call_request);
         let _ = self.command_req_sender.send(Command::EstimateQuota(
             call_request,
             BlockTag::Tag(Tag::Pending),

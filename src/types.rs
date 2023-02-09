@@ -199,7 +199,7 @@ mod tests {
                 y[1] = convert_u8_to_char(i as u8 % 16);
             }
             let s: String = x.iter().collect();
-            assert_eq!(format!("{:02x}", i), s);
+            assert_eq!(format!("{i:02x}"), s);
         }
     }
 

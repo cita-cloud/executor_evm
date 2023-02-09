@@ -13,7 +13,6 @@
 // limitations under the License.
 
 use backtrace::Backtrace;
-use log::error;
 use std::panic::{self, PanicInfo};
 use std::process;
 use std::thread;
@@ -39,13 +38,12 @@ fn panic_hook(info: &PanicInfo) {
     let backtrace = Backtrace::new();
     let error = format!(
         "\n============================\n\
-         {:?}\n\n\
+         {backtrace:?}\n\n\
          position:\n\
-         Thread {} panicked at {}, {}:{}\n\
+         Thread {name} panicked at {msg}, {file}:{line}\n\
          ============================\n\
-         ",
-        backtrace, name, msg, file, line
+         "
     );
-    error!("{}", error);
+    error!("{error}");
     process::exit(1);
 }

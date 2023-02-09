@@ -36,7 +36,6 @@ use cita_database as cita_db;
 use cita_database::{Database, RocksDB};
 use hashable::Hashable;
 use libproto::{executor::ExecutedResult, FullTransaction};
-use log::{debug, info, trace, warn};
 use prost::Message;
 use rlp::{self, decode, Encodable};
 use std::collections::HashMap;
@@ -55,13 +54,15 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn default() -> Self {
-        Config { prooftype: 2 }
-    }
-
     pub fn new(path: &str) -> Self {
         let c: Config = parse_config!(Config, path);
         c
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self { prooftype: 2 }
     }
 }
 

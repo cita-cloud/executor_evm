@@ -14,7 +14,6 @@
 
 use super::block::{ClosedBlock, ExecutedBlock, OpenBlock};
 use super::executor::Executor;
-use log::trace;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
 pub enum StatusOfFsm {

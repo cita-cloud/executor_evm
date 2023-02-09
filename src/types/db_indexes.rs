@@ -90,7 +90,7 @@ pub struct BlockNumber2Header(pub BlockNumber);
 impl DbIndex for BlockNumber2Header {
     fn get_index(&self) -> Vec<u8> {
         let mut result = [0u8; 9];
-        result[0] = BLOCKHEADHASH_INDEX as u8;
+        result[0] = BLOCKHEADHASH_INDEX;
         result[1] = (self.0 >> 56) as u8;
         result[2] = (self.0 >> 48) as u8;
         result[3] = (self.0 >> 40) as u8;
@@ -108,7 +108,7 @@ pub struct BlockNumber2Body(pub BlockNumber);
 impl DbIndex for BlockNumber2Body {
     fn get_index(&self) -> Vec<u8> {
         let mut result = [0u8; 9];
-        result[0] = BLOCKBODYHASH_INDEX as u8;
+        result[0] = BLOCKBODYHASH_INDEX;
         result[1] = (self.0 >> 56) as u8;
         result[2] = (self.0 >> 48) as u8;
         result[3] = (self.0 >> 40) as u8;
@@ -126,7 +126,7 @@ pub struct BlockNumber2Hash(pub BlockNumber);
 impl DbIndex for BlockNumber2Hash {
     fn get_index(&self) -> Vec<u8> {
         let mut result = [0u8; 5];
-        result[0] = BLOCKHASH_INDEX as u8;
+        result[0] = BLOCKHASH_INDEX;
         result[1] = (self.0 >> 24) as u8;
         result[2] = (self.0 >> 16) as u8;
         result[3] = (self.0 >> 8) as u8;
@@ -140,7 +140,7 @@ pub struct Hash2TransactionIndex(pub H256);
 impl DbIndex for Hash2TransactionIndex {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
-        result.0[0] = TRANSACTION_INDEX as u8;
+        result.0[0] = TRANSACTION_INDEX;
         result.0[1..].clone_from_slice(self.0.as_bytes());
         result.0.to_vec()
     }
@@ -151,7 +151,7 @@ pub struct Hash2BlockReceipts(pub H256);
 impl DbIndex for Hash2BlockReceipts {
     fn get_index(&self) -> Vec<u8> {
         let mut result = H264::default();
-        result.0[0] = BLOCKRECEIPTS_INDEX as u8;
+        result.0[0] = BLOCKRECEIPTS_INDEX;
         result.0[1..].clone_from_slice(self.0.as_bytes());
         result.0.to_vec()
     }
@@ -169,7 +169,7 @@ impl From<GroupPosition> for LogGroupPosition {
 impl DbIndex for LogGroupPosition {
     fn get_index(&self) -> Vec<u8> {
         let mut result = [0u8; 6];
-        result[0] = BLOCKSBLOOMS_INDEX as u8;
+        result[0] = BLOCKSBLOOMS_INDEX;
         result[1] = self.0.level as u8;
         result[2] = (self.0.index >> 24) as u8;
         result[3] = (self.0.index >> 16) as u8;

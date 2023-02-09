@@ -38,9 +38,9 @@ impl fmt::Display for CallError {
             StatePruned => "Couldn't find the transaction block's state in the chain".into(),
             Exceptional => "An exception happened in the execution".into(),
             StateCorrupt => "Stored state found to be corrupted.".into(),
-            Execution(ref e) => format!("{}", e),
+            Execution(ref e) => format!("{e}"),
         };
 
-        f.write_fmt(format_args!("Transaction execution error ({}).", msg))
+        f.write_fmt(format_args!("Transaction execution error ({msg})."))
     }
 }

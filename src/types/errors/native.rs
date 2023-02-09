@@ -32,8 +32,8 @@ impl From<NativeError> for VmError {
 impl fmt::Display for NativeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let printable = match self {
-            NativeError::Internal(str) => format!("Internal error {:?}", str),
+            NativeError::Internal(str) => format!("Internal error {str:?}"),
         };
-        write!(f, "{}", printable)
+        write!(f, "{printable}")
     }
 }

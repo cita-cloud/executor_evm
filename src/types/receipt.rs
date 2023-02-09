@@ -298,7 +298,7 @@ mod tests {
         let encoded = ::rlp::encode(&r);
         println!("encode ok");
         let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
-        println!("decoded: {:?}", decoded);
+        println!("decoded: {decoded:?}");
         assert_eq!(decoded, r);
     }
 
@@ -322,7 +322,7 @@ mod tests {
         );
         let encoded = ::rlp::encode(&r);
         let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
-        println!("decoded: {:?}", decoded);
+        println!("decoded: {decoded:?}");
         assert_eq!(decoded, r);
     }
 
@@ -346,7 +346,7 @@ mod tests {
         );
         let encoded = ::rlp::encode(&r);
         let decoded: Receipt = ::rlp::decode(&encoded).unwrap();
-        println!("decoded: {:?}", decoded);
+        println!("decoded: {decoded:?}");
         assert_eq!(decoded, r);
     }
 }

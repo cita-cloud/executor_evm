@@ -30,6 +30,6 @@ impl fmt::Display for AuthenticationError {
             AuthenticationError::NoCallPermission => "No contract call permission.".to_owned(),
             AuthenticationError::InvalidTransaction => "Invalid transaction.".to_owned(),
         };
-        write!(f, "{}", printable)
+        write!(f, "{printable}")
     }
 }

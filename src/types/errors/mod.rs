@@ -36,13 +36,13 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let err = match self {
-            Error::Execution(ref err) => format!("Execution error {:?}", err),
-            Error::Receipt(ref err) => format!("Receipt error {:?}", err),
-            Error::Call(ref err) => format!("Call error {:?}", err),
-            Error::Native(ref err) => format!("Native error {:?}", err),
-            Error::Authentication(ref err) => format!("Authentication error {:?}", err),
+            Error::Execution(ref err) => format!("Execution error {err:?}"),
+            Error::Receipt(ref err) => format!("Receipt error {err:?}"),
+            Error::Call(ref err) => format!("Call error {err:?}"),
+            Error::Native(ref err) => format!("Native error {err:?}"),
+            Error::Authentication(ref err) => format!("Authentication error {err:?}"),
         };
-        write!(f, "{}", err)
+        write!(f, "{err}")
     }
 }
 

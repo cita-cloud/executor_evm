@@ -34,7 +34,7 @@ pub use ethereum_types::{U128, U256, U512, U64};
 
 #[inline]
 pub fn pad_left0(hexstr: &str, width: usize) -> String {
-    format!("{:0>width$}", hexstr, width = width)
+    format!("{hexstr:0>width$}")
 }
 
 #[inline]
@@ -75,7 +75,7 @@ fn convert_u8_to_char(u: u8) -> char {
     match u {
         u if u < 10 => (b'0' + u) as char,
         u if (10..16).contains(&u) => (b'a' + (u - 10)) as char,
-        _ => panic!("{} not bwtween 0 and 15", u),
+        _ => panic!("{u} not bwtween 0 and 15"),
     }
 }
 
@@ -199,7 +199,7 @@ mod tests {
                 y[1] = convert_u8_to_char(i as u8 % 16);
             }
             let s: String = x.iter().collect();
-            assert_eq!(format!("{:02x}", i), s);
+            assert_eq!(format!("{i:02x}"), s);
         }
     }
 

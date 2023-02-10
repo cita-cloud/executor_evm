@@ -7,7 +7,7 @@ RUN rustup component add rustfmt && \
     apt-get install -y --no-install-recommends make wget librocksdb-dev libsnappy-dev liblz4-dev libzstd-dev libssl-dev pkg-config clang protobuf-compiler && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    GRPC_HEALTH_PROBE_VERSION=v0.4.10 && \
+    GRPC_HEALTH_PROBE_VERSION=v0.4.15 && \
     wget -qO /bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
     chmod +x /bin/grpc_health_probe
 RUN make release

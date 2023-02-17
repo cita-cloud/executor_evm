@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let matches = Command::new("CITA-CLOUD EVM EXECUTOR")
         .author(crate_authors!())
         .version(crate_version!())
-        .about("Supply evm interpreter")
+        .about(clap_about() + "\nSupply evm interpreter")
         .subcommand(
             Command::new("run").about("run this service").arg(
                 Arg::new("config")
@@ -272,6 +272,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     Ok(())
+}
+
+pub fn clap_about() -> String {
+    let name = env!("CARGO_PKG_NAME").to_string();
+    let version = env!("CARGO_PKG_VERSION");
+    let authors = env!("CARGO_PKG_AUTHORS");
+    name + " " + version + "\n" + authors
 }
 
 mod config;

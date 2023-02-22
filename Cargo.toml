@@ -14,7 +14,7 @@
 
 [package]
 name = "executor"
-version = "6.6.3"
+version = "6.6.4"
 authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2021"

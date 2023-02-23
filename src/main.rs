@@ -75,21 +75,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         };
         let config = ExecutorConfig::new(config_path.as_str());
 
+        // init tracer
+        cloud_util::tracer::init_tracer(config.domain.clone(), &config.log_config)
+            .map_err(|e| println!("tracer init err: {e}"))
+            .unwrap();
+
         let runtime = tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
             .unwrap();
-
-        let config_for_tracer = config.clone();
-        runtime.spawn(async move {
-            // init tracer
-            cloud_util::tracer::init_tracer(
-                config_for_tracer.domain.clone(),
-                &config_for_tracer.log_config,
-            )
-            .map_err(|e| println!("tracer init err: {e}"))
-            .unwrap()
-        });
 
         let grpc_port = config.executor_port.to_string();
         info!("grpc port of executor_evm: {grpc_port}");

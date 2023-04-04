@@ -39,10 +39,11 @@ pub enum Error {
     InvalidPubKey,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 /// Transaction action type.
 pub enum Action {
     /// Just store the data.
+    #[default]
     Store,
     /// Create creates new contract.
     Create,
@@ -53,12 +54,6 @@ pub enum Action {
     AbiStore,
     /// amend data in state
     AmendData,
-}
-
-impl Default for Action {
-    fn default() -> Action {
-        Action::Store
-    }
 }
 
 impl Decodable for Action {
@@ -98,17 +93,12 @@ impl Encodable for Action {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 /// crypto type.
 pub enum CryptoType {
+    #[default]
     Default,
     Reserved,
-}
-
-impl Default for CryptoType {
-    fn default() -> CryptoType {
-        CryptoType::Default
-    }
 }
 
 impl Decodable for CryptoType {

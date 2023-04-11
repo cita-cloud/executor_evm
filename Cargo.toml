@@ -45,7 +45,6 @@ tiny-keccak = { version="2.0", optional=true }
 hashbrown = { version = "0.13", features = ["rayon"] }
 hasher = { version="0.1" }
 ethereum-types = "0.14"
-backtrace = "0.3"
 tower = "0.4"
 
 cita-merklehash = "0.1"

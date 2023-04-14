@@ -42,7 +42,8 @@ jobs:
           
           docker buildx build \
               --output "type=image,push=true" \
-              --file "Dockerfile" \
-              --tag "${image}:${tag}" \
+              --file "Dockerfile_eth" \
+              --tag "${image}_eth:${tag}" \
               --platform "linux/amd64" \
               "."
+

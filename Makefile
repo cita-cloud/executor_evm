@@ -8,6 +8,9 @@ debug:
 release:
 	$(CARGO) build --all  --release
 
+eth-release:
+	$(CARGO) build --all  --release --no-default-features --features "secp256k1,sha3hash,hashlib-keccak"
+
 test:
 	RUST_BACKTRACE=full $(CARGO) test --all 2>&1
 

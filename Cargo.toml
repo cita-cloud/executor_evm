@@ -22,7 +22,7 @@ edition = "2021"
 [dependencies]
 tonic = "0.9"
 prost = "0.11"
-cita-database = "0.3"
+cita-database = "0.4"
 tokio = { version = "1.27", features = ["full"] }
 clap = { version = "4.2", features = ["derive", "cargo"] }
 crossbeam-channel = "0.5"

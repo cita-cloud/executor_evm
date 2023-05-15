@@ -30,10 +30,13 @@ use crate::types::transaction::{Action, SignedTransaction, Transaction};
 use crate::types::Bytes;
 use crate::types::{Address, H256, U256};
 pub use byteorder::{BigEndian, ByteOrder};
+use cita_cloud_proto::evm::{ReceiptProof, RootsInfo};
 use cita_database::RocksDB;
 use cita_vm::state::{State as CitaState, StateObjectInfo};
 use crossbeam_channel::{Receiver, Sender};
+use hashable::Hashable;
 use libproto::{ConsensusConfig, ExecutedResult};
+use rlp::Encodable;
 use std::cell::RefCell;
 use std::convert::{From, Into};
 use std::fmt;
@@ -57,6 +60,8 @@ pub enum Command {
     Exit(BlockTag),
     CloneExecutorReader,
     ReceiptAt(H256),
+    ReceiptProof(H256),
+    RootsInfo(BlockTag),
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
@@ -76,6 +81,8 @@ pub enum CommandResp {
     Exit,
     CloneExecutorReader(Executor),
     ReceiptAt(Option<RichReceipt>),
+    ReceiptProof(Option<ReceiptProof>),
+    RootsInfo(Option<RootsInfo>),
 }
 
 impl fmt::Display for Command {
@@ -96,6 +103,8 @@ impl fmt::Display for Command {
             Command::Exit(_) => write!(f, "Command::Exit"),
             Command::CloneExecutorReader => write!(f, "Command::CloneExecutorReader"),
             Command::ReceiptAt(_) => write!(f, "Command::ReceiptAt"),
+            Command::ReceiptProof(_) => write!(f, "Command::ReceiptProof"),
+            Command::RootsInfo(_) => write!(f, "Command::RootsInfo"),
         }
     }
 }
@@ -118,6 +127,8 @@ impl fmt::Display for CommandResp {
             CommandResp::Exit => write!(f, "CommandResp::Exit"),
             CommandResp::CloneExecutorReader(_) => write!(f, "CommandResp::CloneExecurorReader"),
             CommandResp::ReceiptAt(_) => write!(f, "CommandResp::ReceiptAt"),
+            CommandResp::ReceiptProof(_) => write!(f, "CommandResp::ReceiptProof"),
+            CommandResp::RootsInfo(_) => write!(f, "CommandResp::RootsInfo"),
         }
     }
 }
@@ -139,6 +150,8 @@ pub trait Commander {
     fn exit(&mut self, rollback_id: BlockTag);
     fn clone_executor_reader(&mut self) -> Self;
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt>;
+    fn receipt_proof(&self, tx_hash: H256) -> Option<ReceiptProof>;
+    fn roots_info(&self, height: BlockTag) -> Option<RootsInfo>;
 }
 
 // revert string like this, abi encode string
@@ -203,6 +216,10 @@ impl Commander for Executor {
                 CommandResp::CloneExecutorReader(self.clone_executor_reader())
             }
             Command::ReceiptAt(tx_hash) => CommandResp::ReceiptAt(self.receipt_at(tx_hash)),
+            Command::ReceiptProof(tx_hash) => {
+                CommandResp::ReceiptProof(self.receipt_proof(tx_hash))
+            }
+            Command::RootsInfo(block_tag) => CommandResp::RootsInfo(self.roots_info(block_tag)),
         }
     }
 
@@ -487,6 +504,50 @@ impl Commander for Executor {
 
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt> {
         self.core_chain.get_rich_receipt(tx_hash)
+    }
+
+    fn receipt_proof(&self, tx_hash: H256) -> Option<ReceiptProof> {
+        if let Some(rich_receipt) = self.core_chain.get_rich_receipt(tx_hash) {
+            if let Some(transaction_index) = self.core_chain.transaction_index(tx_hash) {
+                if let Some(receipts) = self.core_chain.block_receipts(transaction_index.block_hash)
+                {
+                    if let Some(receipt_proof) = cita_merklehash::Tree::from_hashes(
+                        receipts
+                            .receipts
+                            .iter()
+                            .map(|r| r.rlp_bytes().to_vec().crypt_hash())
+                            .collect::<Vec<_>>(),
+                        cita_merklehash::merge,
+                    )
+                    .get_proof_by_input_index(rich_receipt.transaction_index)
+                    {
+                        if let Some(roots_info) =
+                            self.roots_info(BlockTag::Height(rich_receipt.block_number))
+                        {
+                            let mut receipt =
+                                receipts.receipts[rich_receipt.transaction_index].clone();
+                            receipt.state_root = None;
+                            let receipt_proof = cita_merklehash::Proof::from(receipt_proof);
+                            return Some(ReceiptProof {
+                                receipt: receipt.rlp_bytes().to_vec(),
+                                receipt_proof: receipt_proof.rlp_bytes().to_vec(),
+                                roots_info: Some(roots_info),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn roots_info(&self, tag: BlockTag) -> Option<RootsInfo> {
+        let block_header = self.block_header(tag)?;
+        Some(RootsInfo {
+            height: block_header.number(),
+            state_root: block_header.state_root().0.to_vec(),
+            receipt_root: block_header.receipts_root().0.to_vec(),
+        })
     }
 }
 

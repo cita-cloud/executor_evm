@@ -10,8 +10,9 @@ use cita_cloud_proto::blockchain::Block as CloudBlock;
 use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashResponse};
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
-    Balance as CloudBalance, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
-    ByteQuota as CloudByteQuota, Nonce as CloudNonce, Receipt as CloudReceipt,
+    Balance as CloudBalance, BlockNumber, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
+    ByteQuota as CloudByteQuota, Nonce as CloudNonce, Receipt as CloudReceipt, ReceiptProof,
+    RootsInfo,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -82,17 +83,24 @@ impl ExecutorService for ExecutorServer {
             Ok(executed_final) => {
                 let header = executed_final.result.get_executed_info().get_header();
                 let state_root = header.get_state_root();
+                let receipt_root = header.get_receipts_root();
+                // hash = state_root ^ receipt_root, replace of state_root
+                let hash = state_root
+                    .iter()
+                    .zip(receipt_root.iter())
+                    .map(|(x, y)| x ^ y)
+                    .collect();
                 if executed_final.status.is_success().is_ok() {
                     info!(
-                        "height: {}, state_root: 0x{}",
+                        "height: {}, state_root: 0x{}, receipt_root: 0x{}, app_hash: 0x{}",
                         header.get_height(),
-                        hex::encode(state_root)
+                        hex::encode(state_root),
+                        hex::encode(receipt_root),
+                        hex::encode(&hash)
                     );
                     Ok(Response::new(HashResponse {
                         status: Some(StatusCodeEnum::Success.into()),
-                        hash: Some(CloudHash {
-                            hash: state_root.to_vec(),
-                        }),
+                        hash: Some(CloudHash { hash }),
                     }))
                 } else {
                     info!(
@@ -265,6 +273,47 @@ impl RpcService for ExecutorServer {
                 Ok(Response::new(CloudByteQuota { bytes_quota }))
             }
             _ => Err(Status::new(Code::InvalidArgument, "estimate quota failed")),
+        }
+    }
+
+    #[instrument(skip_all)]
+    async fn get_receipt_proof(
+        &self,
+        request: Request<CloudHash>,
+    ) -> Result<Response<ReceiptProof>, Status> {
+        let cloud_hash = request.into_inner();
+        debug!("get_receipt_proof request: {:x?}", cloud_hash);
+        let _ = self
+            .command_req_sender
+            .send(Command::ReceiptProof(H256::from_slice(
+                cloud_hash.hash.as_slice(),
+            )));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::ReceiptProof(Some(receipt_proof))) => Ok(Response::new(receipt_proof)),
+            _ => Err(Status::new(
+                Code::InvalidArgument,
+                "Not get the receipt proof",
+            )),
+        }
+    }
+
+    #[instrument(skip_all)]
+    async fn get_roots_info(
+        &self,
+        request: Request<BlockNumber>,
+    ) -> Result<Response<RootsInfo>, Status> {
+        let block_number = request.into_inner();
+        debug!("get_roots_info request: {:?}", block_number);
+        let _ = self
+            .command_req_sender
+            .send(Command::RootsInfo(BlockTag::Height(
+                block_number.block_number,
+            )));
+
+        match self.command_resp_receiver.recv() {
+            Ok(CommandResp::RootsInfo(Some(roots_info))) => Ok(Response::new(roots_info)),
+            _ => Err(Status::new(Code::InvalidArgument, "Not get the roots info")),
         }
     }
 }

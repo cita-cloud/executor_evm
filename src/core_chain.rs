@@ -365,13 +365,13 @@ impl Chain {
     }
 
     /// Get address of transaction by hash.
-    fn transaction_index(&self, hash: TransactionHash) -> Option<TransactionIndex> {
+    pub(crate) fn transaction_index(&self, hash: TransactionHash) -> Option<TransactionIndex> {
         let hash_key = Hash2TransactionIndex(hash).get_index();
         self.db
             .get(Some(cita_db::DataCategory::Extra), &hash_key)
             .unwrap_or(None)
             .map(|res| {
-                let tx_index: TransactionIndex = rlp::decode(&res).unwrap();
+                let tx_index: TransactionIndex = decode(&res).unwrap();
                 tx_index
             })
     }

@@ -16,7 +16,7 @@
 use crate::types::receipt::Receipt;
 use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct BlockReceipts {
     pub receipts: Vec<Receipt>,
 }

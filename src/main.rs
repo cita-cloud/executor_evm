@@ -228,8 +228,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 command_req_sender,
                 command_resp_receiver,
             };
-            let executor_svc = ExecutorServiceServer::new(inner.clone());
-            let rpc_svc = RpcServiceServer::new(inner);
+            let executor_svc =
+                ExecutorServiceServer::new(inner.clone()).max_decoding_message_size(usize::MAX);
+            let rpc_svc = RpcServiceServer::new(inner).max_decoding_message_size(usize::MAX);
 
             let layer = if config.enable_metrics {
                 tokio::spawn(async move {

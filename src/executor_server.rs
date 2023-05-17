@@ -85,11 +85,15 @@ impl ExecutorService for ExecutorServer {
                 let state_root = header.get_state_root();
                 let receipt_root = header.get_receipts_root();
                 // hash = state_root ^ receipt_root, replace of state_root
-                let hash = state_root
-                    .iter()
-                    .zip(receipt_root.iter())
-                    .map(|(x, y)| x ^ y)
-                    .collect();
+                let hash = if header.height != 0 {
+                    state_root
+                        .iter()
+                        .zip(receipt_root.iter())
+                        .map(|(x, y)| x ^ y)
+                        .collect()
+                } else {
+                    state_root.to_vec()
+                };
                 if executed_final.status.is_success().is_ok() {
                     info!(
                         "height: {}, state_root: 0x{}, receipt_root: 0x{}, app_hash: 0x{}",
@@ -104,15 +108,15 @@ impl ExecutorService for ExecutorServer {
                     }))
                 } else {
                     info!(
-                        "exec: not success: {:?}, state_root: 0x{}",
-                        executed_final.status,
-                        hex::encode(state_root)
+                        "exec: not success: {:?}, state_root: 0x{}, receipt_root: 0x{}, app_hash: 0x{}",
+                        header.get_height(),
+                        hex::encode(state_root),
+                        hex::encode(receipt_root),
+                        hex::encode(&hash)
                     );
                     Ok(Response::new(HashResponse {
                         status: Some(executed_final.status.into()),
-                        hash: Some(CloudHash {
-                            hash: state_root.to_vec(),
-                        }),
+                        hash: Some(CloudHash { hash }),
                     }))
                 }
             }

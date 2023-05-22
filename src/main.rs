@@ -38,7 +38,7 @@ use core_executor::libexecutor::executor::Executor;
 use core_executor::libexecutor::fsm::Fsm;
 use executor_server::ExecutorServer;
 use hashable::Hashable;
-use libproto::{ExecutedHeader, ExecutedInfo, ExecutedResult};
+use libproto::{ExecutedInfo, ExecutedResult};
 #[macro_use]
 extern crate tracing as logger;
 use prost::Message;
@@ -144,9 +144,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             if let Some(reserve_header) = executor.block_header_by_height(open_block.number()) {
                                 // timestamp != 0, re-enter-block, else, genesis block
                                 if reserve_header.timestamp() != 0 {
-                                    let mut header = ExecutedHeader::new();
-                                    header.set_state_root(reserve_header.state_root().0.to_vec());
-
+                                    let header = reserve_header.generate_executed_header();
                                     let mut exc_info = ExecutedInfo::new();
                                     exc_info.set_header(header);
 

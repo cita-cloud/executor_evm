@@ -288,6 +288,7 @@ impl Executor {
         let consensus_config = ConsensusConfig::default();
         let executed_header = self
             .block_header(block_tag)
+            .as_ref()
             .map(Header::generate_executed_header)
             .unwrap_or_default();
         let mut executed_result = ExecutedResult::new();

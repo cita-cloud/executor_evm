@@ -394,7 +394,7 @@ impl Header {
         header
     }
 
-    pub fn generate_executed_header(self) -> ExecutedHeader {
+    pub fn generate_executed_header(&self) -> ExecutedHeader {
         let mut executed_header = ExecutedHeader::new();
         executed_header.set_prevhash(self.parent_hash.0.to_vec());
         executed_header.set_timestamp(self.timestamp);

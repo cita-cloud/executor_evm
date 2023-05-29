@@ -14,7 +14,7 @@
 
 [package]
 name = "executor"
-version = "6.6.5"
+version = "6.7.0"
 authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -22,7 +22,7 @@ edition = "2021"
 [dependencies]
 tonic = "0.9"
 prost = "0.11"
-cita-database = "0.4"
+cita-database = "0.5"
 tokio = { version = "1.27", features = ["full"] }
 clap = { version = "4.2", features = ["derive", "cargo"] }
 crossbeam-channel = "0.5"

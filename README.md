@@ -11,7 +11,7 @@ docker build -t citacloud/executor_evm .
 
 ```
 $ executor -h
-executor 6.6.5
+executor 6.7.0
 Yieazy <yuitta@163.com>:Rivtower Technologies <contact@rivtower.com>
 Supply evm interpreter
 

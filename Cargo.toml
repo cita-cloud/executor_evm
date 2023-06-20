@@ -55,6 +55,8 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 tracing = "0.1"
+tonic-reflection = "0.9"
+tonic-web = "0.9"
 
 cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/cloud-common-rs" }
 cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs" }

@@ -29,6 +29,7 @@ use cita_cloud_proto::evm::rpc_service_server::RpcServiceServer;
 use cita_cloud_proto::executor::executor_service_server::ExecutorServiceServer;
 use cita_cloud_proto::health_check::health_server::HealthServer;
 use cita_cloud_proto::status_code::StatusCodeEnum;
+use cita_cloud_proto::EXECUTOR_DESCRIPTOR_SET;
 use clap::{crate_authors, crate_version, Arg, Command};
 use cloud_util::metrics::{run_metrics_exporter, MiddlewareLayer};
 use cloud_util::panic_hook::set_panic_handler;
@@ -45,6 +46,7 @@ use prost::Message;
 use std::path::Path;
 use std::thread;
 use tonic::transport::Server;
+use tonic_web::GrpcWebLayer;
 use types::block::OpenBlock;
 use types::block_number::{BlockTag, Tag};
 // extern crate enum_primitive;
@@ -244,11 +246,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 None
             };
 
+            let reflection = tonic_reflection::server::Builder::configure()
+                .register_encoded_file_descriptor_set(EXECUTOR_DESCRIPTOR_SET)
+                .build()
+                .unwrap();
+
             info!("start executor_evm grpc server");
             if layer.is_some() {
                 info!("metrics on");
                 Server::builder()
+                    .accept_http1(true)
                     .layer(layer.unwrap())
+                    .layer(GrpcWebLayer::new())
+                    .add_service(reflection)
                     .add_service(executor_svc)
                     .add_service(rpc_svc)
                     .add_service(HealthServer::new(HealthCheckServer {}))
@@ -258,6 +268,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 info!("metrics off");
                 Server::builder()
+                    .accept_http1(true)
+                    .layer(GrpcWebLayer::new())
+                    .add_service(reflection)
                     .add_service(executor_svc)
                     .add_service(rpc_svc)
                     .add_service(HealthServer::new(HealthCheckServer {}))

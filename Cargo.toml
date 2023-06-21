@@ -49,6 +49,7 @@ hasher = { version="0.1" }
 ethereum-types = "0.13"
 backtrace = "0.3"
 tower = "0.4"
+cita-types = "=0.1.1"
 
 cita-merklehash = "0.1"
 cita-secp256k1 = "0.1"
@@ -58,11 +59,11 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 
-cloud-util = "0.6.0"
-cita_cloud_proto = "6.6.3"
+cloud-util = "=0.6.0"
+cita_cloud_proto = "=6.6.3"
 
 [dependencies.cita-vm]
-version = "0.3"
+version = "=0.3.1"
 default-features = false
 features = ["sha3hash"]
 

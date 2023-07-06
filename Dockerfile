@@ -6,10 +6,7 @@ RUN rustup component add rustfmt && \
     apt-get update && \
     apt-get install -y --no-install-recommends make wget librocksdb-dev libsnappy-dev liblz4-dev libzstd-dev libssl-dev pkg-config clang protobuf-compiler && \
     apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    GRPC_HEALTH_PROBE_VERSION=v0.4.15 && \
-    wget -qO /bin/grpc_health_probe https://github.com/grpc-ecosystem/grpc-health-probe/releases/download/${GRPC_HEALTH_PROBE_VERSION}/grpc_health_probe-linux-amd64 && \
-    chmod +x /bin/grpc_health_probe
+    rm -rf /var/lib/apt/lists/*
 RUN make release
 
 FROM debian:bullseye-slim
@@ -19,5 +16,5 @@ RUN apt-get update && \
 RUN useradd -m chain
 USER chain
 COPY --from=buildstage /build/target/release/executor /usr/bin/
-COPY --from=buildstage /bin/grpc_health_probe /usr/bin/
+COPY --from=ghcr.io/grpc-ecosystem/grpc-health-probe:v0.4.19 /ko-app/grpc-health-probe /usr/bin/
 CMD ["executor"]

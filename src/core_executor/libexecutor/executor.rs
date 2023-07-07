@@ -15,6 +15,8 @@
 use crate::config::ExecutorConfig;
 use crate::core_chain::Chain;
 pub use crate::core_executor::libexecutor::block::*;
+use crate::core_executor::libexecutor::call_request::CallRequest;
+use crate::executor_server::ExecutedFinal;
 use crate::trie_db::TrieDb;
 use crate::types::block_number::{BlockTag, Tag};
 use crate::types::db_indexes;
@@ -22,12 +24,18 @@ use crate::types::db_indexes::DbIndex;
 use crate::types::header::*;
 use crate::types::H256;
 pub use byteorder::{BigEndian, ByteOrder};
+use cita_cloud_proto::status_code::StatusCodeEnum;
 use cita_database::{Config, DataCategory, Database, RocksDB, NUM_COLUMNS};
-use libproto::{ConsensusConfig, ExecutedResult};
+use hashable::Hashable;
+use libproto::{ConsensusConfig, ExecutedInfo, ExecutedResult};
+use prost::Message;
 use rlp::{decode, encode};
 use std::convert::Into;
 use std::sync::Arc;
 use util::RwLock;
+
+use super::command::Commander;
+use super::fsm::Fsm;
 
 pub type CitaTrieDb = TrieDb<RocksDB>;
 pub type CitaDb = RocksDB;
@@ -336,5 +344,94 @@ pub fn get_current_header(db: Arc<CitaDb>) -> Option<Header> {
         }
     } else {
         None
+    }
+}
+
+impl Executor {
+    pub fn rpc_exec(&mut self, open_block: OpenBlock) -> ExecutedFinal {
+        // open_block is next block
+        if open_block.number() == self.get_current_height() + 1 {
+            let cloud_header = self
+                .get_current_header()
+                .to_cloud_protobuf()
+                .header
+                .unwrap();
+            let mut block_header_bytes = Vec::with_capacity(cloud_header.encoded_len());
+            cloud_header
+                .encode(&mut block_header_bytes)
+                .map_err(|_| {
+                    warn!("encode block cloud_header failed");
+                    StatusCodeEnum::EncodeError
+                })
+                .unwrap();
+            if &block_header_bytes.crypt_hash() == open_block.parent_hash() {
+                let mut close_block = self.before_fsm(open_block.clone());
+                let executed_result = self.grow(&close_block);
+                close_block.clear_cache();
+                self.core_chain.set_db_result(&executed_result, &open_block);
+                return ExecutedFinal {
+                    status: StatusCodeEnum::Success,
+                    result: executed_result,
+                };
+            } else {
+                panic!(
+                    "block's parent_hash({:?})  is not consistent with current_hash({:?})",
+                    &block_header_bytes.crypt_hash(),
+                    open_block.parent_hash()
+                );
+            }
+        }
+        // handle re-enter-block & genesis block
+        if let Some(reserve_header) = self.block_header_by_height(open_block.number()) {
+            // timestamp != 0, re-enter-block, else, genesis block
+            if reserve_header.timestamp() != 0 {
+                let header = reserve_header.generate_executed_header();
+                let mut exc_info = ExecutedInfo::new();
+                exc_info.set_header(header);
+
+                let mut exc_res = ExecutedResult::new();
+                exc_res.set_executed_info(exc_info);
+                // handle re-enter-block, divide valid or invalid re-enter-block
+                if reserve_header.open_header() == &open_block.header {
+                    info!("block({}) re-enter", open_block.number());
+                    ExecutedFinal {
+                        status: StatusCodeEnum::ReenterBlock,
+                        result: exc_res,
+                    }
+                } else {
+                    warn!("invalid block({}) re-enter", open_block.number());
+                    ExecutedFinal {
+                        status: StatusCodeEnum::ReenterInvalidBlock,
+                        result: exc_res,
+                    }
+                }
+            } else {
+                // execute genesis block
+                let mut close_block = self.before_fsm(open_block.clone());
+                let executed_result = self.grow(&close_block);
+                close_block.clear_cache();
+                self.core_chain.set_db_result(&executed_result, &open_block);
+                ExecutedFinal {
+                    status: StatusCodeEnum::Success,
+                    result: executed_result,
+                }
+            }
+        } else {
+            panic!(
+                "current height: {}, open_block number: {}",
+                self.get_current_height(),
+                open_block.number()
+            );
+        }
+    }
+
+    pub fn rpc_call(&self, call_request: CallRequest) -> Result<Vec<u8>, String> {
+        debug!("get call request: {:x?}", call_request);
+        let tag = if call_request.height.is_none() {
+            BlockTag::Tag(Tag::Pending)
+        } else {
+            BlockTag::Height(call_request.height.unwrap())
+        };
+        self.eth_call(call_request, tag)
     }
 }

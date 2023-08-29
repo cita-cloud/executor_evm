@@ -25,6 +25,7 @@ use cita_vm::{
 };
 use rlp::RlpStream;
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::core_executor::cita_vm_helper::{call_pure, get_interpreter_conf};
@@ -42,14 +43,14 @@ const MAX_CREATE_CODE_SIZE: u64 = std::u64::MAX;
 // FIXME: CITAExecutive need rename to Executive after all works ready.
 pub struct CitaExecutive<'a, B> {
     block_provider: Arc<dyn BlockDataProvider>,
-    state_provider: Arc<RefCell<State<B>>>,
+    state_provider: Rc<RefCell<State<B>>>,
     context: &'a Context,
 }
 
 impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
     pub fn new(
         block_provider: Arc<dyn BlockDataProvider>,
-        state: Arc<RefCell<State<B>>>,
+        state: Rc<RefCell<State<B>>>,
         context: &'a Context,
     ) -> Self {
         Self {
@@ -96,7 +97,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
             evm_cfg: get_interpreter_conf(),
             ..Default::default()
         };
-        let store = Arc::new(RefCell::new(store));
+        let store = Rc::new(RefCell::new(store));
 
         let result = match t.action {
             Action::Store | Action::AbiStore => {
@@ -172,7 +173,7 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
     fn finalize(
         &mut self,
         result: Result<InterpreterResult, VmError>,
-        store: Arc<RefCell<VMSubState>>,
+        store: Rc<RefCell<VMSubState>>,
         gas_limit: U256,
         sender: Address,
         gas_price: U256,
@@ -363,8 +364,8 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
 /// Function create creates a new contract.
 pub fn create<B: DB + 'static>(
     block_provider: Arc<dyn BlockDataProvider>,
-    state_provider: Arc<RefCell<State<B>>>,
-    store: Arc<RefCell<VMSubState>>,
+    state_provider: Rc<RefCell<State<B>>>,
+    store: Rc<RefCell<VMSubState>>,
     request: &InterpreterParams,
     create_kind: CreateKind,
 ) -> Result<evm::InterpreterResult, VmError> {
@@ -464,8 +465,8 @@ pub fn create<B: DB + 'static>(
 /// Function call enters into the specific contract.
 pub fn call<B: DB + 'static>(
     block_provider: Arc<dyn BlockDataProvider>,
-    state_provider: Arc<RefCell<State<B>>>,
-    store: Arc<RefCell<VMSubState>>,
+    state_provider: Rc<RefCell<State<B>>>,
+    store: Rc<RefCell<VMSubState>>,
     request: &InterpreterParams,
 ) -> Result<evm::InterpreterResult, VmError> {
     // Here not need check twice,becauce prepay is subed ,but need think call_static
@@ -474,7 +475,7 @@ pub fn call<B: DB + 'static>(
     }*/
     // Run
     state_provider.borrow_mut().checkpoint();
-    let store_son = Arc::new(RefCell::new(store.borrow_mut().clone()));
+    let store_son = Rc::new(RefCell::new(store.borrow_mut().clone()));
 
     let r = call_pure(
         block_provider.clone(),
@@ -512,7 +513,7 @@ pub fn build_evm_context(context: &Context) -> EVMContext {
 
 /// Function get_refund returns the real ammount to refund for a transaction.
 fn get_refund(
-    store: Arc<RefCell<VMSubState>>,
+    store: Rc<RefCell<VMSubState>>,
     origin: Address,
     gas_limit: u64,
     gas_left: u64,
@@ -527,8 +528,8 @@ fn get_refund(
 
 /// Liquidtion for a transaction.
 fn liquidtion<B: DB + 'static>(
-    state_provider: Arc<RefCell<State<B>>>,
-    store: Arc<RefCell<VMSubState>>,
+    state_provider: Rc<RefCell<State<B>>>,
+    store: Rc<RefCell<VMSubState>>,
     sender: Address,
     gas_price: U256,
     gas_limit: u64,
@@ -612,7 +613,7 @@ pub fn create_address_from_salt_and_code_hash(
 ///
 /// See: EIP 684
 pub fn can_create<B: DB + 'static>(
-    state_provider: Arc<RefCell<State<B>>>,
+    state_provider: Rc<RefCell<State<B>>>,
     address: &Address,
 ) -> Result<bool, VmError> {
     let a = state_provider.borrow_mut().nonce(address)?;
@@ -658,7 +659,7 @@ impl Default for ExecutiveParams {
 
 pub fn build_vm_exec_params<B: DB + 'static>(
     params: &ExecutiveParams,
-    state_provider: Arc<RefCell<State<B>>>,
+    state_provider: Rc<RefCell<State<B>>>,
 ) -> VmExecParams {
     let mut vm_exec_params = VmExecParams {
         origin: params.sender,

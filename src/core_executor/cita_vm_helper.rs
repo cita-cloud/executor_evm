@@ -21,13 +21,14 @@ use cita_vm::{
     Error as VmError,
 };
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// Function call_pure enters into the specific contract with no check or checkpoints.
 pub fn call_pure<B: DB + 'static>(
     block_provider: Arc<dyn BlockDataProvider>,
-    state_provider: Arc<RefCell<State<B>>>,
-    store: Arc<RefCell<VMSubState>>,
+    state_provider: Rc<RefCell<State<B>>>,
+    store: Rc<RefCell<VMSubState>>,
     request: &InterpreterParams,
 ) -> Result<evm::InterpreterResult, VmError> {
     let evm_context = store.borrow().evm_context.clone();

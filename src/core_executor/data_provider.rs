@@ -20,6 +20,7 @@ use cita_vm::state::{State, StateObjectInfo};
 use hashbrown::{HashMap, HashSet};
 use hasher::Hasher;
 use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 /// BlockDataProvider provides functions to get block's hash from chain.
@@ -70,7 +71,7 @@ pub struct Store {
 
 impl Store {
     /// Merge with sub store.
-    pub fn merge(&mut self, other: Arc<RefCell<Self>>) {
+    pub fn merge(&mut self, other: Rc<RefCell<Self>>) {
         self.refund = other.borrow().refund.clone();
         self.origin = other.borrow().origin.clone();
         self.selfdestruct = other.borrow().selfdestruct.clone();
@@ -90,16 +91,16 @@ impl Store {
 /// An implemention for evm::DataProvider
 pub struct DataProvider<B> {
     pub block_provider: Arc<dyn BlockDataProvider>,
-    pub state_provider: Arc<RefCell<State<B>>>,
-    pub store: Arc<RefCell<Store>>,
+    pub state_provider: Rc<RefCell<State<B>>>,
+    pub store: Rc<RefCell<Store>>,
 }
 
 impl<B: DB> DataProvider<B> {
     /// Create a new instance. It's obvious.
     pub fn new(
         b: Arc<dyn BlockDataProvider>,
-        s: Arc<RefCell<State<B>>>,
-        store: Arc<RefCell<Store>>,
+        s: Rc<RefCell<State<B>>>,
+        store: Rc<RefCell<Store>>,
     ) -> Self {
         DataProvider {
             block_provider: b,

@@ -17,7 +17,6 @@ use super::executor::Executor;
 use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::exception::ExecutedException;
-use crate::core_executor::libexecutor::block::EvmBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
 use crate::trie_db::TrieDb;
@@ -39,6 +38,7 @@ use rlp::Encodable;
 use std::cell::RefCell;
 use std::convert::{From, Into};
 use std::fmt;
+use std::rc::Rc;
 use std::sync::Arc;
 use util::RwLock;
 
@@ -315,7 +315,7 @@ impl Commander for Executor {
             let state = self.state_at(id).ok_or_else(|| {
                 ExecutionError::Internal("Estimate Error CallError::StatePruned".to_owned())
             })?;
-            let state = Arc::new(RefCell::new(state));
+            let state = Rc::new(RefCell::new(state));
 
             CitaExecutive::new(block_data_provider.clone(), state, &context.clone()).exec(&tx)
         };
@@ -442,7 +442,7 @@ impl Commander for Executor {
             }
         };
 
-        let state = Arc::new(RefCell::new(state));
+        let state = Rc::new(RefCell::new(state));
         CitaExecutive::new(Arc::new(block_data_provider), state, &context)
             .exec(t)
             .map_err(Into::into)

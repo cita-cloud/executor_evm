@@ -16,6 +16,7 @@ use std::cell::RefCell;
 use std::cmp;
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::core_executor::cita_executive::CitaExecutive;
@@ -41,7 +42,7 @@ use rlp::Encodable;
 pub struct ExecutedBlock {
     pub block: OpenBlock,
     pub receipts: Vec<Receipt>,
-    pub state: Arc<RefCell<CitaState<CitaTrieDb>>>,
+    pub state: Rc<RefCell<CitaState<CitaTrieDb>>>,
     pub current_quota_used: U256,
     pub state_root: H256,
     last_hashes: Arc<LastHashes>,
@@ -76,7 +77,7 @@ impl ExecutedBlock {
             .expect("Get state from trie db");
 
         // Need only one state reference for the whole block transaction.
-        let state = Arc::new(RefCell::new(state));
+        let state = Rc::new(RefCell::new(state));
         let r = ExecutedBlock {
             block,
             state,

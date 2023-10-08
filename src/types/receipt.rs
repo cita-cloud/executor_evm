@@ -270,7 +270,7 @@ impl From<RichReceipt> for CloudReceipt {
             error_message: receipt
                 .error
                 .map(ReceiptError::description)
-                .unwrap_or_else(|| "".to_string()),
+                .unwrap_or_default(),
         }
     }
 }

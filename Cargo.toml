@@ -20,11 +20,11 @@ license = "Apache-2.0"
 edition = "2021"
 
 [dependencies]
-tonic = "0.9"
-prost = "0.11"
+tonic = "0.10"
+prost = "0.12"
 cita-database = "0.5"
-tokio = { version = "1.29", features = ["full"] }
-clap = { version = "4.3", features = ["derive", "cargo"] }
+tokio = { version = "1.32", features = ["full"] }
+clap = { version = "4.4", features = ["derive", "cargo"] }
 hex = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
@@ -33,7 +33,7 @@ bloomchain = "0.2"
 lazy_static = "1.4"
 time = "0.3"
 cita_trie = "4.0"
-byteorder = { version = "1.4", default-features = false }
+byteorder = { version = "1.5", default-features = false }
 bincode = "1.3"
 rand = "0.8"
 ethabi = "18.0"
@@ -54,8 +54,8 @@ util = { package = "cita-util", version = "0.1" }
 hashable = { package = "cita-hashable", version = "0.1" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 tracing = "0.1"
-tonic-reflection = "0.9"
-tonic-web = "0.9"
+tonic-reflection = "0.10"
+tonic-web = "0.10"
 
 cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/cloud-common-rs" }
 cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs" }

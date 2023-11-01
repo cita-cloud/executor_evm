@@ -61,6 +61,7 @@ pub enum Command {
     ReceiptAt(H256),
     ReceiptProof(H256),
     RootsInfo(BlockTag),
+    StorageAt(Address, H256, BlockTag),
 }
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
@@ -82,6 +83,7 @@ pub enum CommandResp {
     ReceiptAt(Option<RichReceipt>),
     ReceiptProof(Option<ReceiptProof>),
     RootsInfo(Option<RootsInfo>),
+    StorageAt(Option<H256>),
 }
 
 impl fmt::Display for Command {
@@ -104,6 +106,7 @@ impl fmt::Display for Command {
             Command::ReceiptAt(_) => write!(f, "Command::ReceiptAt"),
             Command::ReceiptProof(_) => write!(f, "Command::ReceiptProof"),
             Command::RootsInfo(_) => write!(f, "Command::RootsInfo"),
+            Command::StorageAt(_, _, _) => write!(f, "Command::StorageAt"),
         }
     }
 }
@@ -128,6 +131,7 @@ impl fmt::Display for CommandResp {
             CommandResp::ReceiptAt(_) => write!(f, "CommandResp::ReceiptAt"),
             CommandResp::ReceiptProof(_) => write!(f, "CommandResp::ReceiptProof"),
             CommandResp::RootsInfo(_) => write!(f, "CommandResp::RootsInfo"),
+            CommandResp::StorageAt(_) => write!(f, "CommandResp::StorageAt"),
         }
     }
 }
@@ -151,6 +155,7 @@ pub trait Commander {
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt>;
     fn receipt_proof(&self, tx_hash: H256) -> Option<ReceiptProof>;
     fn roots_info(&self, height: BlockTag) -> Option<RootsInfo>;
+    fn storage_at(&self, address: Address, key: H256, block_tag: BlockTag) -> Option<H256>;
 }
 
 // revert string like this, abi encode string
@@ -219,6 +224,9 @@ impl Commander for Executor {
                 CommandResp::ReceiptProof(self.receipt_proof(tx_hash))
             }
             Command::RootsInfo(block_tag) => CommandResp::RootsInfo(self.roots_info(block_tag)),
+            Command::StorageAt(address, key, block_tag) => {
+                CommandResp::StorageAt(self.storage_at(address, key, block_tag))
+            }
         }
     }
 
@@ -547,5 +555,10 @@ impl Commander for Executor {
             state_root: block_header.state_root().0.to_vec(),
             receipt_root: block_header.receipts_root().0.to_vec(),
         })
+    }
+
+    fn storage_at(&self, address: Address, key: H256, block_tag: BlockTag) -> Option<H256> {
+        self.state_at(block_tag)
+            .and_then(|mut s| s.get_storage(&address, &key).ok())
     }
 }

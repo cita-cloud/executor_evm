@@ -9,12 +9,13 @@ use crate::types::block_number::{BlockTag, Tag};
 use crate::types::{Address, H256};
 use cita_cloud_proto::blockchain::raw_transaction::Tx as CloudTx;
 use cita_cloud_proto::blockchain::Block as CloudBlock;
-use cita_cloud_proto::common::{Address as CloudAddress, Hash as CloudHash, HashResponse};
+use cita_cloud_proto::common::{Hash as CloudHash, HashResponse};
 use cita_cloud_proto::evm::rpc_service_server::RpcService;
 use cita_cloud_proto::evm::{
     Balance as CloudBalance, BlockNumber, ByteAbi as CloudByteAbi, ByteCode as CloudByteCode,
-    ByteQuota as CloudByteQuota, Nonce as CloudNonce, Receipt as CloudReceipt, ReceiptProof,
-    RootsInfo,
+    ByteQuota as CloudByteQuota, GetAbiRequest, GetBalanceRequest, GetCodeRequest,
+    GetStorageAtRequest, GetTransactionCountRequest, Nonce as CloudNonce, Receipt as CloudReceipt,
+    ReceiptProof, RootsInfo,
 };
 use cita_cloud_proto::executor::executor_service_server::ExecutorService;
 use cita_cloud_proto::executor::{
@@ -151,14 +152,14 @@ impl RpcService for ExecutorServer {
     #[instrument(skip_all)]
     async fn get_code(
         &self,
-        request: Request<CloudAddress>,
+        request: Request<GetCodeRequest>,
     ) -> Result<Response<CloudByteCode>, Status> {
         cloud_util::tracer::set_parent(&request);
-        let cloud_address = request.into_inner();
-        debug!("get_code request: {:x?}", cloud_address);
+        let raw_request = request.into_inner();
+        debug!("get_code request: {:x?}", raw_request);
         let resp = self.executor.write().operate(Command::CodeAt(
-            Address::from_slice(cloud_address.address.as_slice()),
-            BlockTag::Tag(Tag::Pending),
+            Address::from_slice(raw_request.address.unwrap().address.as_slice()),
+            raw_request.block_number.unwrap().into(),
         ));
 
         match resp {
@@ -170,14 +171,14 @@ impl RpcService for ExecutorServer {
     #[instrument(skip_all)]
     async fn get_balance(
         &self,
-        request: Request<CloudAddress>,
+        request: Request<GetBalanceRequest>,
     ) -> Result<Response<CloudBalance>, Status> {
         cloud_util::tracer::set_parent(&request);
-        let cloud_address = request.into_inner();
-        debug!("get_balance request: {:x?}", cloud_address);
+        let raw_request = request.into_inner();
+        debug!("get_balance request: {:x?}", raw_request);
         let resp = self.executor.write().operate(Command::BalanceAt(
-            Address::from_slice(cloud_address.address.as_slice()),
-            BlockTag::Tag(Tag::Pending),
+            Address::from_slice(raw_request.address.unwrap().address.as_slice()),
+            raw_request.block_number.unwrap().into(),
         ));
 
         match resp {
@@ -189,14 +190,14 @@ impl RpcService for ExecutorServer {
     #[instrument(skip_all)]
     async fn get_transaction_count(
         &self,
-        request: Request<CloudAddress>,
+        request: Request<GetTransactionCountRequest>,
     ) -> Result<Response<CloudNonce>, Status> {
         cloud_util::tracer::set_parent(&request);
-        let cloud_address = request.into_inner();
-        debug!("get_transaction_count request: {:x?}", cloud_address);
+        let raw_request = request.into_inner();
+        debug!("get_transaction_count request: {:x?}", raw_request);
         let resp = self.executor.write().operate(Command::NonceAt(
-            Address::from_slice(cloud_address.address.as_slice()),
-            BlockTag::Tag(Tag::Pending),
+            Address::from_slice(raw_request.address.unwrap().address.as_slice()),
+            raw_request.block_number.unwrap().into(),
         ));
 
         match resp {
@@ -212,14 +213,14 @@ impl RpcService for ExecutorServer {
     #[instrument(skip_all)]
     async fn get_abi(
         &self,
-        request: Request<CloudAddress>,
+        request: Request<GetAbiRequest>,
     ) -> Result<Response<CloudByteAbi>, Status> {
         cloud_util::tracer::set_parent(&request);
-        let cloud_address = request.into_inner();
-        debug!("get_abi request: {:x?}", cloud_address);
+        let raw_request = request.into_inner();
+        debug!("get_abi request: {:x?}", raw_request);
         let resp = self.executor.write().operate(Command::AbiAt(
-            Address::from_slice(cloud_address.address.as_slice()),
-            BlockTag::Tag(Tag::Pending),
+            Address::from_slice(raw_request.address.unwrap().address.as_slice()),
+            raw_request.block_number.unwrap().into(),
         ));
 
         match resp {
@@ -236,10 +237,14 @@ impl RpcService for ExecutorServer {
         cloud_util::tracer::set_parent(&request);
         let call_request = CallRequest::from(request.into_inner());
         debug!("estimate_quota request: {:x?}", call_request);
-        let resp = self.executor.write().operate(Command::EstimateQuota(
-            call_request,
-            BlockTag::Tag(Tag::Pending),
-        ));
+        let block_tag = match call_request.height {
+            Some(height) => BlockTag::Height(height),
+            None => BlockTag::Tag(Tag::Pending),
+        };
+        let resp = self
+            .executor
+            .write()
+            .operate(Command::EstimateQuota(call_request, block_tag));
 
         match resp {
             CommandResp::EstimateQuota(Ok(bytes_quota)) => {
@@ -282,13 +287,32 @@ impl RpcService for ExecutorServer {
         let resp = self
             .executor
             .write()
-            .operate(Command::RootsInfo(BlockTag::Height(
-                block_number.block_number,
-            )));
+            .operate(Command::RootsInfo(block_number.into()));
 
         match resp {
             CommandResp::RootsInfo(Some(roots_info)) => Ok(Response::new(roots_info)),
             _ => Err(Status::new(Code::InvalidArgument, "Not get the roots info")),
+        }
+    }
+
+    #[instrument(skip_all)]
+    async fn get_storage_at(
+        &self,
+        request: Request<GetStorageAtRequest>,
+    ) -> Result<Response<CloudHash>, Status> {
+        let raw_request = request.into_inner();
+        debug!("get_storage_at request: {:?}", raw_request);
+        let resp = self.executor.write().operate(Command::StorageAt(
+            Address::from_slice(raw_request.address.unwrap().address.as_slice()),
+            H256::from_slice(raw_request.position.unwrap().hash.as_slice()),
+            raw_request.block_number.unwrap().into(),
+        ));
+
+        match resp {
+            CommandResp::StorageAt(Some(value)) => Ok(Response::new(CloudHash {
+                hash: value.0.to_vec(),
+            })),
+            _ => Err(Status::new(Code::InvalidArgument, "Not storage slot info")),
         }
     }
 }

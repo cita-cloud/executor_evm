@@ -14,7 +14,7 @@
 
 [package]
 name = "executor"
-version = "6.7.1"
+version = "6.7.2-beta.3"
 authors = ["Yieazy <yuitta@163.com>", "Rivtower Technologies <contact@rivtower.com>"]
 license = "Apache-2.0"
 edition = "2021"
@@ -41,7 +41,7 @@ parking_lot = "0.12"
 ethbloom = "0.13"
 sha3 = { version="0.10", optional=true }
 tiny-keccak = { version="2.0", optional=true }
-hashbrown = { version = "0.13", features = ["rayon"] } # locked by cita-vm 0.3
+hashbrown = { version = "0.14", features = ["rayon"] } # locked by cita-vm 0.3
 hasher = { version="0.1" }
 ethereum-types = "0.14"
 tower = "0.4"
@@ -61,7 +61,7 @@ cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/clou
 cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs" }
 
 [dependencies.cita-vm]
-version = "0.3"
+version = "0.4"
 default-features = false
 features = ["sha3hash"]
 

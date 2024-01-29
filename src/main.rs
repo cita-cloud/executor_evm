@@ -36,6 +36,7 @@ use parking_lot::RwLock;
 use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
+use std::time::Duration;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
 // extern crate enum_primitive;
@@ -79,6 +80,11 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
         "config.toml".to_string()
     };
     let config = ExecutorConfig::new(config_path.as_str());
+
+    let http2_keepalive_interval = config.http2_keepalive_interval;
+    let http2_keepalive_timeout = config.http2_keepalive_timeout;
+    let tcp_keepalive = config.tcp_keepalive;
+
     let config_for_tracer = config.clone();
     tokio::spawn(async move {
         // init tracer
@@ -128,6 +134,9 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
         info!("metrics on");
         Server::builder()
             .accept_http1(true)
+            .http2_keepalive_interval(Some(Duration::from_secs(http2_keepalive_interval)))
+            .http2_keepalive_timeout(Some(Duration::from_secs(http2_keepalive_timeout)))
+            .tcp_keepalive(Some(Duration::from_secs(tcp_keepalive)))
             .layer(layer.unwrap())
             .layer(GrpcWebLayer::new())
             .add_service(reflection)
@@ -143,6 +152,9 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
         info!("metrics off");
         Server::builder()
             .accept_http1(true)
+            .http2_keepalive_interval(Some(Duration::from_secs(http2_keepalive_interval)))
+            .http2_keepalive_timeout(Some(Duration::from_secs(http2_keepalive_timeout)))
+            .tcp_keepalive(Some(Duration::from_secs(tcp_keepalive)))
             .layer(GrpcWebLayer::new())
             .add_service(reflection)
             .add_service(executor_svc)

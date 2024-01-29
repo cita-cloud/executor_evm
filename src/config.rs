@@ -34,6 +34,12 @@ pub struct ExecutorConfig {
 
     pub domain: String,
 
+    pub http2_keepalive_interval: u64,
+
+    pub http2_keepalive_timeout: u64,
+
+    pub tcp_keepalive: u64,
+
     pub log_config: LogConfig,
 }
 
@@ -50,6 +56,9 @@ impl Default for ExecutorConfig {
                 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0, 25.0, 50.0, 75.0, 100.0, 250.0, 500.0,
             ],
             domain: Default::default(),
+            http2_keepalive_interval: 300,
+            http2_keepalive_timeout: 10,
+            tcp_keepalive: 600,
             log_config: Default::default(),
         }
     }

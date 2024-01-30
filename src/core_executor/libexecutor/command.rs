@@ -17,7 +17,6 @@ use super::executor::Executor;
 use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::exception::ExecutedException;
-use crate::core_executor::libexecutor::block::EvmBlockDataProvider;
 pub use crate::core_executor::libexecutor::block::*;
 use crate::core_executor::libexecutor::call_request::CallRequest;
 use crate::trie_db::TrieDb;

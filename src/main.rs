@@ -43,6 +43,7 @@ use log::{debug, info, trace, warn};
 use prost::Message;
 use std::path::Path;
 use std::thread;
+use std::time::Duration;
 use tonic::transport::Server;
 use types::block::OpenBlock;
 use types::block_number::{BlockTag, Tag};
@@ -81,6 +82,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "config.toml".to_string()
         };
         let config = ExecutorConfig::new(config_path.as_str());
+
+        let http2_keepalive_interval = config.http2_keepalive_interval;
+        let http2_keepalive_timeout = config.http2_keepalive_timeout;
+        let tcp_keepalive = config.tcp_keepalive;
 
         // init log4rs
         let log_path = if let Some(c) = opts.get_one::<String>("log") {
@@ -255,6 +260,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if layer.is_some() {
                 info!("metrics on");
                 Server::builder()
+                    .http2_keepalive_interval(Some(Duration::from_secs(http2_keepalive_interval)))
+                    .http2_keepalive_timeout(Some(Duration::from_secs(http2_keepalive_timeout)))
+                    .tcp_keepalive(Some(Duration::from_secs(tcp_keepalive)))
                     .layer(layer.unwrap())
                     .add_service(executor_svc)
                     .add_service(rpc_svc)
@@ -265,6 +273,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 info!("metrics off");
                 Server::builder()
+                    .http2_keepalive_interval(Some(Duration::from_secs(http2_keepalive_interval)))
+                    .http2_keepalive_timeout(Some(Duration::from_secs(http2_keepalive_timeout)))
+                    .tcp_keepalive(Some(Duration::from_secs(tcp_keepalive)))
                     .add_service(executor_svc)
                     .add_service(rpc_svc)
                     .add_service(HealthServer::new(HealthCheckServer {}))

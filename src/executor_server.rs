@@ -157,6 +157,15 @@ impl RpcService for ExecutorServer {
         cloud_util::tracer::set_parent(&request);
         let raw_request = request.into_inner();
         debug!("get_code request: {:x?}", raw_request);
+
+        if raw_request.address.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Address is none"));
+        }
+
+        if raw_request.block_number.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Block number is none"));
+        }
+
         let resp = self.executor.write().operate(Command::CodeAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
@@ -176,6 +185,15 @@ impl RpcService for ExecutorServer {
         cloud_util::tracer::set_parent(&request);
         let raw_request = request.into_inner();
         debug!("get_balance request: {:x?}", raw_request);
+
+        if raw_request.address.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Address is none"));
+        }
+
+        if raw_request.block_number.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Block number is none"));
+        }
+
         let resp = self.executor.write().operate(Command::BalanceAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
@@ -195,6 +213,15 @@ impl RpcService for ExecutorServer {
         cloud_util::tracer::set_parent(&request);
         let raw_request = request.into_inner();
         debug!("get_transaction_count request: {:x?}", raw_request);
+
+        if raw_request.address.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Address is none"));
+        }
+
+        if raw_request.block_number.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Block number is none"));
+        }
+
         let resp = self.executor.write().operate(Command::NonceAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
@@ -218,6 +245,15 @@ impl RpcService for ExecutorServer {
         cloud_util::tracer::set_parent(&request);
         let raw_request = request.into_inner();
         debug!("get_abi request: {:x?}", raw_request);
+
+        if raw_request.address.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Address is none"));
+        }
+
+        if raw_request.block_number.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Block number is none"));
+        }
+
         let resp = self.executor.write().operate(Command::AbiAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
@@ -302,6 +338,19 @@ impl RpcService for ExecutorServer {
     ) -> Result<Response<CloudHash>, Status> {
         let raw_request = request.into_inner();
         debug!("get_storage_at request: {:?}", raw_request);
+
+        if raw_request.address.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Address is none"));
+        }
+
+        if raw_request.position.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Position is none"));
+        }
+
+        if raw_request.block_number.is_none() {
+            return Err(Status::new(Code::InvalidArgument, "Block number is none"));
+        }
+
         let resp = self.executor.write().operate(Command::StorageAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             H256::from_slice(raw_request.position.unwrap().hash.as_slice()),

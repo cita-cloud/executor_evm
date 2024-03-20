@@ -18,7 +18,8 @@ use crate::types::{Address, H160, H256, U256, U512};
 use cita_trie::DB;
 use cita_vm::{
     evm::{
-        self, Context as EVMContext, Contract, InterpreterParams, InterpreterResult, Log as EVMLog,
+        self, Context as EVMContext, Contract, Error as EvmError, InterpreterParams,
+        InterpreterResult, Log as EVMLog,
     },
     state::{State, StateObjectInfo},
     summary, Error as VmError,
@@ -36,6 +37,17 @@ use crate::types::errors::ExecutionError;
 use crate::types::log::Log;
 use crate::types::transaction::{Action, SignedTransaction};
 use ethbloom::{Bloom, Input as BloomInput};
+
+///amend the abi data
+const AMEND_ABI: u32 = 1;
+///amend the account code
+const AMEND_CODE: u32 = 2;
+///amend the kv of db
+const AMEND_KV_H256: u32 = 3;
+///amend get the value of db
+const AMEND_GET_KV_H256: u32 = 4;
+///amend account's balance
+const AMEND_ACCOUNT_BALANCE: u32 = 5;
 
 /// See: https://github.com/ethereum/EIPs/issues/659
 const MAX_CREATE_CODE_SIZE: u64 = std::u64::MAX;
@@ -139,7 +151,30 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
             }
 
             Action::AmendData => {
-                unimplemented!()
+                // Backup used in case of running error
+                self.state_provider.borrow_mut().checkpoint();
+
+                match self.call_amend_data(t.value, Some(t.data.clone())) {
+                    Ok(Some(val)) => {
+                        // Discard the checkpoint because of amend data ok.
+                        self.state_provider.borrow_mut().discard_checkpoint();
+                        Ok(InterpreterResult::Normal(
+                            val.0.to_vec(),
+                            init_gas.as_u64(),
+                            vec![],
+                        ))
+                    }
+                    Ok(None) => {
+                        // Discard the checkpoint because of amend data ok.
+                        self.state_provider.borrow_mut().discard_checkpoint();
+                        Ok(InterpreterResult::Normal(vec![], init_gas.as_u64(), vec![]))
+                    }
+                    Err(e) => {
+                        // Need to revert the state.
+                        self.state_provider.borrow_mut().revert_checkpoint();
+                        Err(e)
+                    }
+                }
             }
             Action::Call(ref address) => {
                 let params = ExecutiveParams {
@@ -336,6 +371,132 @@ impl<'a, B: DB + 'static> CitaExecutive<'a, B> {
                 .sub_balance(sender, U256(gas_arr))?;
         }
         Ok(())
+    }
+
+    fn transact_set_code(&mut self, data: &[u8]) -> bool {
+        if data.len() <= 20 {
+            return false;
+        }
+        let account = H160::from_slice(&data[0..20]);
+        let code = &data[20..];
+        self.state_provider
+            .borrow_mut()
+            .set_code(&account, code.to_vec())
+            .is_ok()
+    }
+
+    fn transact_set_balance(&mut self, data: &[u8]) -> bool {
+        if data.len() < 52 {
+            return false;
+        }
+        let account = H160::from_slice(&data[0..20]);
+        let balance = U256::from(&data[20..52]);
+
+        let now_val = self
+            .state_provider
+            .borrow_mut()
+            .balance(&account)
+            .unwrap_or_default();
+        if now_val > balance {
+            self.state_provider
+                .borrow_mut()
+                .sub_balance(&account, now_val - balance)
+                .is_ok()
+        } else {
+            self.state_provider
+                .borrow_mut()
+                .add_balance(&account, balance - now_val)
+                .is_ok()
+        }
+    }
+
+    fn transact_set_kv_h256(&mut self, data: &[u8]) -> bool {
+        let len = data.len();
+        if len < 84 {
+            return false;
+        }
+        let loop_num: usize = (len - 20) / (32 * 2);
+        let account = H160::from_slice(&data[0..20]);
+
+        for i in 0..loop_num {
+            let base = 20 + 32 * 2 * i;
+            let key = H256::from_slice(&data[base..base + 32]);
+            let val = H256::from_slice(&data[base + 32..base + 32 * 2]);
+            if self
+                .state_provider
+                .borrow_mut()
+                .set_storage(&account, key, val)
+                .is_err()
+            {
+                return false;
+            }
+        }
+        true
+    }
+
+    fn transact_get_kv_h256(&mut self, data: &[u8]) -> Option<H256> {
+        let account = H160::from_slice(&data[0..20]);
+        let key = H256::from_slice(&data[20..52]);
+        self.state_provider
+            .borrow_mut()
+            .get_storage(&account, &key)
+            .ok()
+    }
+
+    fn call_amend_data(
+        &mut self,
+        value: U256,
+        data: Option<Bytes>,
+    ) -> Result<Option<H256>, VmError> {
+        let amend_type = value.low_u32();
+        match amend_type {
+            AMEND_ABI => {
+                if self.transact_set_abi(&(data.unwrap())) {
+                    Ok(None)
+                } else {
+                    Err(VmError::Evm(EvmError::Internal(
+                        "Account doesn't exist".to_owned(),
+                    )))
+                }
+            }
+            AMEND_CODE => {
+                if self.transact_set_code(&(data.unwrap())) {
+                    Ok(None)
+                } else {
+                    Err(VmError::Evm(EvmError::Internal(
+                        "Account doesn't exist".to_owned(),
+                    )))
+                }
+            }
+            AMEND_KV_H256 => {
+                if self.transact_set_kv_h256(&(data.unwrap())) {
+                    Ok(None)
+                } else {
+                    Err(VmError::Evm(EvmError::Internal(
+                        "Account doesn't exist".to_owned(),
+                    )))
+                }
+            }
+            AMEND_GET_KV_H256 => {
+                if let Some(v) = self.transact_get_kv_h256(&(data.unwrap())) {
+                    Ok(Some(v))
+                } else {
+                    Err(VmError::Evm(EvmError::Internal(
+                        "May be incomplete trie error".to_owned(),
+                    )))
+                }
+            }
+            AMEND_ACCOUNT_BALANCE => {
+                if self.transact_set_balance(&(data.unwrap())) {
+                    Ok(None)
+                } else {
+                    Err(VmError::Evm(EvmError::Internal(
+                        "Account doesn't exist or incomplete trie error".to_owned(),
+                    )))
+                }
+            }
+            _ => Ok(None),
+        }
     }
 
     fn transact_set_abi(&mut self, data: &[u8]) -> bool {

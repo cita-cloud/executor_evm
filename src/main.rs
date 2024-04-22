@@ -32,10 +32,8 @@ use core_executor::libexecutor::executor::Executor;
 use executor_server::ExecutorServer;
 #[macro_use]
 extern crate tracing as logger;
-use parking_lot::RwLock;
 use std::error::Error;
 use std::path::Path;
-use std::sync::Arc;
 use std::time::Duration;
 use tonic::transport::Server;
 use tonic_web::GrpcWebLayer;
@@ -104,7 +102,7 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
     );
 
     let inner = ExecutorServer {
-        executor: Arc::new(RwLock::new(Executor::init(&config))),
+        executor: Executor::init(&config),
     };
     let executor_svc =
         ExecutorServiceServer::new(inner.clone()).max_decoding_message_size(usize::MAX);

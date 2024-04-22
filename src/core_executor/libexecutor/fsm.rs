@@ -64,7 +64,7 @@ impl std::fmt::Display for StatusOfFsm {
 }
 
 pub trait Fsm {
-    fn before_fsm(&mut self, open_block: OpenBlock) -> ClosedBlock;
+    fn before_fsm(&self, open_block: OpenBlock) -> ClosedBlock;
     fn fsm_initialize(&self, open_block: OpenBlock) -> StatusOfFsm;
     fn fsm_pause(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFsm;
     fn fsm_execute(&self, executed_block: ExecutedBlock, index: usize) -> StatusOfFsm;
@@ -72,7 +72,7 @@ pub trait Fsm {
 }
 
 impl Fsm for Executor {
-    fn before_fsm(&mut self, open_block: OpenBlock) -> ClosedBlock {
+    fn before_fsm(&self, open_block: OpenBlock) -> ClosedBlock {
         let mut status = StatusOfFsm::Initialize(open_block);
         loop {
             trace!("executor is at {}", status);

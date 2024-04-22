@@ -42,12 +42,13 @@ pub type CitaDb = RocksDB;
 
 pub type LastHashes = Vec<H256>;
 
+#[derive(Clone)]
 pub struct Executor {
-    pub current_header: RwLock<Header>,
+    pub current_header: Arc<RwLock<Header>>,
     pub state_db: Arc<CitaTrieDb>,
     pub db: Arc<dyn Database>,
     pub eth_compatibility: bool,
-    pub core_chain: Chain,
+    pub core_chain: Arc<Chain>,
 }
 
 impl Executor {
@@ -72,11 +73,11 @@ impl Executor {
         let chain_db = Arc::new(nosql_db);
         let core_chain = Chain::init_chain(chain_db);
         let executor = Executor {
-            current_header: RwLock::new(current_header),
+            current_header: Arc::new(RwLock::new(current_header)),
             state_db,
             db,
             eth_compatibility: config.eth_compatibility,
-            core_chain,
+            core_chain: Arc::new(core_chain),
         };
 
         info!(
@@ -128,7 +129,7 @@ impl Executor {
         }
 
         let rollback_header = self.block_header_by_height(rollback_height).unwrap();
-        self.current_header = RwLock::new(rollback_header);
+        self.current_header = Arc::new(RwLock::new(rollback_header));
     }
 
     /// Write data to db
@@ -348,7 +349,7 @@ pub fn get_current_header(db: Arc<CitaDb>) -> Option<Header> {
 }
 
 impl Executor {
-    pub fn rpc_exec(&mut self, open_block: OpenBlock) -> ExecutedFinal {
+    pub fn rpc_exec(&self, open_block: OpenBlock) -> ExecutedFinal {
         // open_block is next block
         if open_block.number() == self.get_current_height() + 1 {
             let cloud_header = self

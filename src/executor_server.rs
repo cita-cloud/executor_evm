@@ -79,8 +79,10 @@ impl ExecutorService for ExecutorServer {
                 }
             }
         }
-
-        let executed_final = self.executor.rpc_exec(open_blcok);
+        let exector = self.executor.clone();
+        let executed_final = tokio::task::spawn_blocking(move || exector.rpc_exec(open_blcok))
+            .await
+            .unwrap();
 
         let header = executed_final.result.get_executed_info().get_header();
         let state_root = header.get_state_root();

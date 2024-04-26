@@ -14,7 +14,6 @@
 
 use super::executor::CitaTrieDb;
 use super::executor::Executor;
-use crate::core_chain::Chain;
 use crate::core_executor::cita_executive::{CitaExecutive, ExecutedResult as CitaExecuted};
 use crate::core_executor::exception::ExecutedException;
 pub use crate::core_executor::libexecutor::block::*;
@@ -40,7 +39,6 @@ use std::convert::{From, Into};
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
-use util::RwLock;
 
 #[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
 pub enum Command {
@@ -56,8 +54,6 @@ pub enum Command {
     Call(SignedTransaction, BlockTag),
     LoadExecutedResult(u64),
     Grow(ClosedBlock),
-    Exit(BlockTag),
-    CloneExecutorReader,
     ReceiptAt(H256),
     ReceiptProof(H256),
     RootsInfo(BlockTag),
@@ -78,8 +74,6 @@ pub enum CommandResp {
     Call(Result<CitaExecuted, CallError>),
     LoadExecutedResult(ExecutedResult),
     Grow(ExecutedResult),
-    Exit,
-    CloneExecutorReader(Executor),
     ReceiptAt(Option<RichReceipt>),
     ReceiptProof(Option<ReceiptProof>),
     RootsInfo(Option<RootsInfo>),
@@ -101,8 +95,6 @@ impl fmt::Display for Command {
             Command::Call(_, _) => write!(f, "Command::Call"),
             Command::LoadExecutedResult(_) => write!(f, "Command::LoadExecutedResult"),
             Command::Grow(_) => write!(f, "Command::Grow"),
-            Command::Exit(_) => write!(f, "Command::Exit"),
-            Command::CloneExecutorReader => write!(f, "Command::CloneExecutorReader"),
             Command::ReceiptAt(_) => write!(f, "Command::ReceiptAt"),
             Command::ReceiptProof(_) => write!(f, "Command::ReceiptProof"),
             Command::RootsInfo(_) => write!(f, "Command::RootsInfo"),
@@ -126,8 +118,6 @@ impl fmt::Display for CommandResp {
             CommandResp::Call(_) => write!(f, "CommandResp::Call"),
             CommandResp::LoadExecutedResult(_) => write!(f, "CommandResp::LoadExecutedResult"),
             CommandResp::Grow(_) => write!(f, "CommandResp::Grow"),
-            CommandResp::Exit => write!(f, "CommandResp::Exit"),
-            CommandResp::CloneExecutorReader(_) => write!(f, "CommandResp::CloneExecurorReader"),
             CommandResp::ReceiptAt(_) => write!(f, "CommandResp::ReceiptAt"),
             CommandResp::ReceiptProof(_) => write!(f, "CommandResp::ReceiptProof"),
             CommandResp::RootsInfo(_) => write!(f, "CommandResp::RootsInfo"),
@@ -137,7 +127,7 @@ impl fmt::Display for CommandResp {
 }
 
 pub trait Commander {
-    fn operate(&mut self, command: Command) -> CommandResp;
+    fn operate(&self, command: Command) -> CommandResp;
     fn state_at(&self, block_tag: BlockTag) -> Option<CitaState<CitaTrieDb>>;
     fn gen_state(&self, root: H256, parent_hash: H256) -> Option<CitaState<CitaTrieDb>>;
     fn code_at(&self, address: &Address, block_tag: BlockTag) -> Option<Bytes>;
@@ -149,9 +139,7 @@ pub trait Commander {
     fn sign_call(&self, request: CallRequest) -> SignedTransaction;
     fn call(&self, t: &SignedTransaction, block_tag: BlockTag) -> Result<CitaExecuted, CallError>;
     fn load_executed_result(&self, height: u64) -> ExecutedResult;
-    fn grow(&mut self, closed_block: &ClosedBlock) -> ExecutedResult;
-    fn exit(&mut self, rollback_id: BlockTag);
-    fn clone_executor_reader(&mut self) -> Self;
+    fn grow(&self, closed_block: &ClosedBlock) -> ExecutedResult;
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt>;
     fn receipt_proof(&self, tx_hash: H256) -> Option<ReceiptProof>;
     fn roots_info(&self, height: BlockTag) -> Option<RootsInfo>;
@@ -176,7 +164,7 @@ fn parse_reason_string(output: &[u8]) -> Option<String> {
 }
 
 impl Commander for Executor {
-    fn operate(&mut self, command: Command) -> CommandResp {
+    fn operate(&self, command: Command) -> CommandResp {
         match command {
             Command::StateAt(block_tag) => CommandResp::StateAt(self.state_at(block_tag)),
             Command::GenState(root, parent_hash) => {
@@ -211,13 +199,6 @@ impl Commander for Executor {
                 let r = self.grow(&closed_block);
                 closed_block.clear_cache();
                 CommandResp::Grow(r)
-            }
-            Command::Exit(rollback_id) => {
-                self.exit(rollback_id);
-                CommandResp::Exit
-            }
-            Command::CloneExecutorReader => {
-                CommandResp::CloneExecutorReader(self.clone_executor_reader())
             }
             Command::ReceiptAt(tx_hash) => CommandResp::ReceiptAt(self.receipt_at(tx_hash)),
             Command::ReceiptProof(tx_hash) => {
@@ -460,7 +441,7 @@ impl Commander for Executor {
         self.executed_result_by_height(height)
     }
 
-    fn grow(&mut self, closed_block: &ClosedBlock) -> ExecutedResult {
+    fn grow(&self, closed_block: &ClosedBlock) -> ExecutedResult {
         info!(
             "executor grow according to ClosedBlock(height: {}, hash: {:?}, parent_hash: {:?}, \
              timestamp: {}, state_root: {:?}, transaction_root: {:?}, proposer: {:?})",
@@ -487,26 +468,6 @@ impl Commander for Executor {
         executed_result.set_config(consensus_config);
         executed_result.set_executed_info(executed_info);
         executed_result
-    }
-
-    fn exit(&mut self, rollback_id: BlockTag) {
-        self.rollback_current_height(rollback_id);
-        self.close();
-    }
-
-    fn clone_executor_reader(&mut self) -> Self {
-        let current_header = self.current_header.read().clone();
-        let state_db = self.state_db.clone();
-        let db = self.db.clone();
-        let eth_compatibility = self.eth_compatibility;
-        let core_chain = Chain::init_chain(self.core_chain.db.clone());
-        Executor {
-            current_header: RwLock::new(current_header),
-            state_db,
-            db,
-            eth_compatibility,
-            core_chain,
-        }
     }
 
     fn receipt_at(&self, tx_hash: H256) -> Option<RichReceipt> {

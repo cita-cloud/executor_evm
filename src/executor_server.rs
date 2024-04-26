@@ -1,4 +1,16 @@
-use std::sync::Arc;
+// Copyright Rivtower Technologies LLC.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 use crate::core_executor::libexecutor::call_request::CallRequest;
 use crate::core_executor::libexecutor::command::{Command, CommandResp, Commander};
@@ -22,7 +34,6 @@ use cita_cloud_proto::executor::{
     CallRequest as CloudCallRequest, CallResponse as CloudCallResponse,
 };
 use cita_cloud_proto::status_code::StatusCodeEnum;
-use parking_lot::RwLock;
 use tonic::{Code, Request, Response, Status};
 
 pub struct ExecutedFinal {
@@ -32,7 +43,7 @@ pub struct ExecutedFinal {
 
 #[derive(Clone)]
 pub struct ExecutorServer {
-    pub executor: Arc<RwLock<Executor>>,
+    pub executor: Executor,
 }
 
 #[tonic::async_trait]
@@ -68,8 +79,10 @@ impl ExecutorService for ExecutorServer {
                 }
             }
         }
-
-        let executed_final = self.executor.write().rpc_exec(open_blcok);
+        let exector = self.executor.clone();
+        let executed_final = tokio::task::spawn_blocking(move || exector.rpc_exec(open_blcok))
+            .await
+            .unwrap();
 
         let header = executed_final.result.get_executed_info().get_header();
         let state_root = header.get_state_root();
@@ -120,7 +133,7 @@ impl ExecutorService for ExecutorServer {
 
         let cloud_call_request = request.into_inner();
         debug!("get call request: {:x?}", cloud_call_request);
-        match self.executor.read().rpc_call(cloud_call_request.into()) {
+        match self.executor.rpc_call(cloud_call_request.into()) {
             Ok(value) => Ok(Response::new(CloudCallResponse { value })),
             Err(str) => Err(Status::new(Code::InvalidArgument, str)),
         }
@@ -138,12 +151,9 @@ impl RpcService for ExecutorServer {
         let cloud_hash = request.into_inner();
         debug!("get_transaction_receipt request: {:x?}", cloud_hash);
 
-        match self
-            .executor
-            .write()
-            .operate(Command::ReceiptAt(H256::from_slice(
-                cloud_hash.hash.as_slice(),
-            ))) {
+        match self.executor.operate(Command::ReceiptAt(H256::from_slice(
+            cloud_hash.hash.as_slice(),
+        ))) {
             CommandResp::ReceiptAt(Some(rich_receipt)) => Ok(Response::new(rich_receipt.into())),
             _ => Err(Status::new(Code::InvalidArgument, "Not get the receipt")),
         }
@@ -166,7 +176,7 @@ impl RpcService for ExecutorServer {
             return Err(Status::new(Code::InvalidArgument, "Block number is none"));
         }
 
-        let resp = self.executor.write().operate(Command::CodeAt(
+        let resp = self.executor.operate(Command::CodeAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
         ));
@@ -194,7 +204,7 @@ impl RpcService for ExecutorServer {
             return Err(Status::new(Code::InvalidArgument, "Block number is none"));
         }
 
-        let resp = self.executor.write().operate(Command::BalanceAt(
+        let resp = self.executor.operate(Command::BalanceAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
         ));
@@ -222,7 +232,7 @@ impl RpcService for ExecutorServer {
             return Err(Status::new(Code::InvalidArgument, "Block number is none"));
         }
 
-        let resp = self.executor.write().operate(Command::NonceAt(
+        let resp = self.executor.operate(Command::NonceAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
         ));
@@ -254,7 +264,7 @@ impl RpcService for ExecutorServer {
             return Err(Status::new(Code::InvalidArgument, "Block number is none"));
         }
 
-        let resp = self.executor.write().operate(Command::AbiAt(
+        let resp = self.executor.operate(Command::AbiAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             raw_request.block_number.unwrap().into(),
         ));
@@ -279,7 +289,6 @@ impl RpcService for ExecutorServer {
         };
         let resp = self
             .executor
-            .write()
             .operate(Command::EstimateQuota(call_request, block_tag));
 
         match resp {
@@ -299,7 +308,6 @@ impl RpcService for ExecutorServer {
         debug!("get_receipt_proof request: {:x?}", cloud_hash);
         let resp = self
             .executor
-            .write()
             .operate(Command::ReceiptProof(H256::from_slice(
                 cloud_hash.hash.as_slice(),
             )));
@@ -322,7 +330,6 @@ impl RpcService for ExecutorServer {
         debug!("get_roots_info request: {:?}", block_number);
         let resp = self
             .executor
-            .write()
             .operate(Command::RootsInfo(block_number.into()));
 
         match resp {
@@ -351,7 +358,7 @@ impl RpcService for ExecutorServer {
             return Err(Status::new(Code::InvalidArgument, "Block number is none"));
         }
 
-        let resp = self.executor.write().operate(Command::StorageAt(
+        let resp = self.executor.operate(Command::StorageAt(
             Address::from_slice(raw_request.address.unwrap().address.as_slice()),
             H256::from_slice(raw_request.position.unwrap().hash.as_slice()),
             raw_request.block_number.unwrap().into(),

@@ -607,7 +607,7 @@ mod tests {
     #[allow(clippy::field_reassign_with_default)]
     fn test_protobuf() {
         let mut stx = SignedTransaction::default();
-        stx.gas = U256::from(u64::max_value() / 100000);
+        stx.gas = U256::from(u64::MAX / 100000);
         let stx_proto = stx.protobuf();
         let stx = SignedTransaction::create(&stx_proto).unwrap();
         let stx_rlp = rlp::encode(&stx).to_vec();

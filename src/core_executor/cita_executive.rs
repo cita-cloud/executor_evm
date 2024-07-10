@@ -50,7 +50,7 @@ const AMEND_GET_KV_H256: u32 = 4;
 const AMEND_ACCOUNT_BALANCE: u32 = 5;
 
 /// See: https://github.com/ethereum/EIPs/issues/659
-const MAX_CREATE_CODE_SIZE: u64 = std::u64::MAX;
+const MAX_CREATE_CODE_SIZE: u64 = u64::MAX;
 
 // FIXME: CITAExecutive need rename to Executive after all works ready.
 pub struct CitaExecutive<'a, B> {

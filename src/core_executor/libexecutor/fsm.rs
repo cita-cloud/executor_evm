@@ -15,7 +15,7 @@
 use super::block::{ClosedBlock, ExecutedBlock, OpenBlock};
 use super::executor::Executor;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
+#[allow(clippy::large_enum_variant)]
 pub enum StatusOfFsm {
     Initialize(OpenBlock),
     Pause(ExecutedBlock, usize),

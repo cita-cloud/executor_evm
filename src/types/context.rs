@@ -38,7 +38,7 @@ impl Default for Context {
             coin_base: Address::default(),
             timestamp: 0,
             difficulty: U256::default(),
-            block_quota_limit: U256::from(u64::max_value()),
+            block_quota_limit: U256::from(u64::MAX),
             last_hashes: Arc::new(vec![]),
             quota_used: U256::default(),
             account_quota_limit: U256::default(),
@@ -68,6 +68,6 @@ mod tests {
     fn test_default() {
         let context = Context::default();
         assert_eq!(context.quota_used, U256::zero());
-        assert_eq!(context.block_quota_limit, U256::from(u64::max_value()));
+        assert_eq!(context.block_quota_limit, U256::from(u64::MAX));
     }
 }

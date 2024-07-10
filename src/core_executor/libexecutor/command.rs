@@ -40,7 +40,7 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     StateAt(BlockTag),
     GenState(H256, H256),
@@ -60,7 +60,7 @@ pub enum Command {
     StorageAt(Address, H256, BlockTag),
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
+#[allow(clippy::large_enum_variant)]
 pub enum CommandResp {
     StateAt(Option<CitaState<CitaTrieDb>>),
     GenState(Option<CitaState<CitaTrieDb>>),
@@ -286,7 +286,7 @@ impl Commander for Executor {
             last_hashes: ::std::sync::Arc::new(last_hashes),
             quota_used: *header.quota_used(),
             block_quota_limit: max_quota,
-            account_quota_limit: u64::max_value().into(),
+            account_quota_limit: u64::MAX.into(),
         };
         let block_data_provider = Arc::new(EvmBlockDataProvider::new(context.clone()));
 
@@ -381,7 +381,7 @@ impl Commander for Executor {
             gas_price: U256::zero(),
             value: U256::zero(),
             data: request.data.map_or_else(Vec::new, |d| d.to_vec()),
-            block_limit: u64::max_value(),
+            block_limit: u64::MAX,
             chain_id: U256::default(),
             version: 0u32,
         }
@@ -403,7 +403,7 @@ impl Commander for Executor {
             last_hashes: ::std::sync::Arc::new(last_hashes),
             quota_used: *header.quota_used(),
             block_quota_limit: *header.quota_limit(),
-            account_quota_limit: u64::max_value().into(),
+            account_quota_limit: u64::MAX.into(),
         };
         // context.block_quota_limit = U256::from(self.sys_config.block_quota_limit);
 

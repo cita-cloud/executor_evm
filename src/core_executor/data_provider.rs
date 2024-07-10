@@ -72,10 +72,10 @@ pub struct Store {
 impl Store {
     /// Merge with sub store.
     pub fn merge(&mut self, other: Rc<RefCell<Self>>) {
-        self.refund = other.borrow().refund.clone();
-        self.origin = other.borrow().origin.clone();
-        self.selfdestruct = other.borrow().selfdestruct.clone();
-        self.inused = other.borrow().inused.clone();
+        self.refund.clone_from(&other.borrow().refund);
+        self.origin.clone_from(&other.borrow().origin);
+        self.selfdestruct.clone_from(&other.borrow().selfdestruct);
+        self.inused.clone_from(&other.borrow().inused);
     }
 
     /// When a account has been read or write, record a log

@@ -95,7 +95,7 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
     });
     let grpc_port = config.executor_port.to_string();
     info!("grpc port of executor_evm: {grpc_port}");
-    let executor_addr = format!("0.0.0.0:{grpc_port}").parse()?;
+    let executor_addr = format!("[::]:{grpc_port}").parse()?;
     assert!(
         !Path::new(&config.db_path).is_absolute(),
         "db_path must be relative path"

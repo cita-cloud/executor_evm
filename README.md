@@ -68,7 +68,7 @@ $ executor run -c example/config.toml
 2023-02-08T08:29:10.291043Z  INFO executor::core_executor::libexecutor::executor: executor init, current_height: 0, current_hash: 0x75a88272c753ad456cdebee34204665277e847288af916f3db52ef71f4c651d1
 2023-02-08T08:29:10.317068Z  INFO executor: start executor_evm grpc server
 2023-02-08T08:29:10.317118Z  INFO executor: metrics on
-2023-02-08T08:29:10.318089Z  INFO cloud_util::metrics: exporting metrics to http://0.0.0.0:60002/metrics
+2023-02-08T08:29:10.318089Z  INFO cloud_util::metrics: exporting metrics to http://[::]:60002/metrics
 ```
 
 ## 设计

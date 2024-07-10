@@ -591,7 +591,7 @@ impl Chain {
                     })
             })
             .filter(|log| matches(&log.log))
-            .take(limit.unwrap_or(::std::usize::MAX))
+            .take(limit.unwrap_or(usize::MAX))
             .collect::<Vec<LocalizedLog>>();
         logs.reverse();
         logs

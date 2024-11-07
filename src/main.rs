@@ -124,7 +124,7 @@ async fn run(opts: &clap::ArgMatches) -> Result<(), Box<dyn Error>> {
 
     let reflection = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(EXECUTOR_DESCRIPTOR_SET)
-        .build()
+        .build_v1()
         .unwrap();
 
     info!("start executor_evm grpc server");

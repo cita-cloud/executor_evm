@@ -37,10 +37,59 @@ pub struct ExecutorServer {
     pub command_resp_receiver: Receiver<CommandResp>,
 }
 
+fn check_cloud_block(block: &CloudBlock) -> bool {
+    if let Some(header) = &block.header {
+        if header.prevhash.len() != 32
+            || header.transactions_root.len() != 32
+            || (header.height == 0 && header.proposer.len() != 32)
+            || (header.height != 0 && header.proposer.len() != 20)
+        {
+            return false;
+        }
+    } else {
+        return false;
+    }
+    if let Some(body) = &block.body {
+        for raw_tx in &body.body {
+            if let Some(CloudTx::NormalTx(utx)) = &raw_tx.tx {
+                if utx.transaction_hash.len() != 32 {
+                    return false;
+                }
+                if let Some(tx) = &utx.transaction {
+                    if tx.chain_id.len() > 32
+                        || tx.nonce.len() > 128
+                        || (tx.to.len() != 20 && tx.to.len() != 0)
+                        || tx.value.len() > 32
+                    {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+                if let Some(witness) = &utx.witness {
+                    if witness.sender.len() != 20 {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
 #[tonic::async_trait]
 impl ExecutorService for ExecutorServer {
     async fn exec(&self, request: Request<CloudBlock>) -> Result<Response<HashResponse>, Status> {
         let block = request.into_inner();
+        if !check_cloud_block(&block) {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Not allowed rpc invoke.",
+            ));
+        }
+
         debug!("get exec request: {:x?}", block);
         let mut open_blcok = OpenBlock::from(block.clone());
         info!("exec method invoke, height: {}", open_blcok.header.number());
@@ -121,8 +170,16 @@ impl ExecutorService for ExecutorServer {
         &self,
         request: Request<CloudCallRequest>,
     ) -> Result<Response<CloudCallResponse>, Status> {
-        let cloud_call_request = request.into_inner();
-        let _ = self.call_req_sender.send(cloud_call_request);
+        let cloud_request = request.into_inner();
+        if cloud_request.to.len() != 20
+            || (!cloud_request.from.is_empty() && cloud_request.from.len() != 20)
+        {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Call request's from or to address invalid",
+            ));
+        }
+        let _ = self.call_req_sender.send(cloud_request);
 
         match self.call_resp_receiver.recv() {
             Ok(call_result) => match call_result {
@@ -141,11 +198,16 @@ impl RpcService for ExecutorServer {
         request: Request<CloudHash>,
     ) -> Result<Response<CloudReceipt>, Status> {
         let cloud_hash = request.into_inner();
+        let hash = cloud_hash.hash;
+        if hash.len() != 32 {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Transaction hash length must be 32.",
+            ));
+        }
         let _ = self
             .command_req_sender
-            .send(Command::ReceiptAt(H256::from_slice(
-                cloud_hash.hash.as_slice(),
-            )));
+            .send(Command::ReceiptAt(H256::from_slice(hash.as_slice())));
 
         match self.command_resp_receiver.recv() {
             Ok(CommandResp::ReceiptAt(Some(rich_receipt))) => {
@@ -160,8 +222,15 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteCode>, Status> {
         let cloud_address = request.into_inner();
+        let address = cloud_address.address;
+        if address.len() != 20 {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Contract address length must be 20.",
+            ));
+        }
         let _ = self.command_req_sender.send(Command::CodeAt(
-            Address::from_slice(cloud_address.address.as_slice()),
+            Address::from_slice(address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -178,8 +247,15 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudBalance>, Status> {
         let cloud_address = request.into_inner();
+        let address = cloud_address.address;
+        if address.len() != 20 {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Address length must be 20.",
+            ));
+        }
         let _ = self.command_req_sender.send(Command::BalanceAt(
-            Address::from_slice(cloud_address.address.as_slice()),
+            Address::from_slice(address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -194,8 +270,15 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudNonce>, Status> {
         let cloud_address = request.into_inner();
+        let address = cloud_address.address;
+        if address.len() != 20 {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Address length must be 20.",
+            ));
+        }
         let _ = self.command_req_sender.send(Command::NonceAt(
-            Address::from_slice(cloud_address.address.as_slice()),
+            Address::from_slice(address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -214,8 +297,15 @@ impl RpcService for ExecutorServer {
         request: Request<CloudAddress>,
     ) -> Result<Response<CloudByteAbi>, Status> {
         let cloud_address = request.into_inner();
+        let address = cloud_address.address;
+        if address.len() != 20 {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Contract address length must be 20.",
+            ));
+        }
         let _ = self.command_req_sender.send(Command::AbiAt(
-            Address::from_slice(cloud_address.address.as_slice()),
+            Address::from_slice(address.as_slice()),
             BlockTag::Tag(Tag::Pending),
         ));
 
@@ -231,7 +321,16 @@ impl RpcService for ExecutorServer {
         &self,
         request: Request<CloudCallRequest>,
     ) -> Result<Response<CloudByteQuota>, Status> {
-        let call_request = CallRequest::from(request.into_inner());
+        let cloud_request = request.into_inner();
+        if cloud_request.to.len() != 20
+            || (!cloud_request.from.is_empty() && cloud_request.from.len() != 20)
+        {
+            return Err(Status::new(
+                Code::InvalidArgument,
+                "Call request's from or to address invalid",
+            ));
+        }
+        let call_request = CallRequest::from(cloud_request);
         let _ = self.command_req_sender.send(Command::EstimateQuota(
             call_request,
             BlockTag::Tag(Tag::Pending),

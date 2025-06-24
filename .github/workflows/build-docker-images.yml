@@ -6,6 +6,7 @@ on:
       - master
       - main
       - 'v*'
+      - t-6.6.3-sp5
   workflow_dispatch:
 
 jobs:

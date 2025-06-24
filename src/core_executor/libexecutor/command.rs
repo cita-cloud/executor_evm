@@ -40,7 +40,7 @@ use std::fmt;
 use std::sync::Arc;
 use util::RwLock;
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
+#[allow(clippy::large_enum_variant)]
 pub enum Command {
     StateAt(BlockTag),
     GenState(H256, H256),
@@ -59,7 +59,7 @@ pub enum Command {
     ReceiptAt(H256),
 }
 
-#[cfg_attr(feature = "cargo-clippy", allow(clippy::large_enum_variant))]
+#[allow(clippy::large_enum_variant)]
 pub enum CommandResp {
     StateAt(Option<CitaState<CitaTrieDb>>),
     GenState(Option<CitaState<CitaTrieDb>>),

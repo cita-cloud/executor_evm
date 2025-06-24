@@ -6,7 +6,6 @@ on:
       - master
       - main
       - 'v*'
-      - t-6.6.3-sp5
   workflow_dispatch:
 
 jobs:
@@ -44,6 +43,6 @@ jobs:
               --output "type=image,push=true" \
               --file "Dockerfile" \
               --tag "${image}:${tag}" \
-              --platform "linux/amd64,linux/arm64" \
+              --platform "linux/amd64 \
               "."
 

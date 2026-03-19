@@ -25,7 +25,7 @@ edition = "2021"
 [dependencies]
 tonic = "0.14"
 prost = "0.14"
-cita-database = "0.6"
+cita-database = "0.7"
 tokio = { version = "1.50", features = ["full"] }
 clap = { version = "4.6", features = ["derive", "cargo"] }
 hex = "0.4"
@@ -35,7 +35,7 @@ serde_json = "1.0"
 bloomchain = "0.2"
 lazy_static = "1.5"
 time = "0.3"
-cita_trie = "5.0"
+cita_trie = "6.0"
 byteorder = { version = "1.5", default-features = false }
 bincode = "2.0"
 rand = "0.10"
@@ -49,12 +49,12 @@ hasher = { version = "0.1" }
 ethereum-types = "0.16"
 tower = "0.5"
 
-cita-merklehash = "0.1"
+cita-merklehash = "0.2"
 cita-secp256k1 = "0.1"
-cita-crypto = "0.1"
-rlp = "0.6"
+cita-crypto = "0.2"
+rlp = { version = "0.6", features = ["derive"] }
 util = { package = "cita-util", version = "0.1" }
-hashable = { package = "cita-hashable", version = "0.1" }
+hashable = { package = "cita-hashable", version = "0.2" }
 libproto = { git = "https://github.com/cita-cloud/libproto" }
 tracing = "0.1"
 tonic-reflection = "0.14"
@@ -64,7 +64,7 @@ cloud-util = { package = "cloud-util", git = "https://github.com/cita-cloud/clou
 cita_cloud_proto = { package = "cita_cloud_proto", git = "https://github.com/cita-cloud/cloud-common-rs", branch = "update" }
 
 [dependencies.cita-vm]
-version = "0.5"
+version = "0.6"
 default-features = false
 features = ["sha3hash"]
 

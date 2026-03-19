@@ -222,13 +222,13 @@ impl Transaction {
                     }
                 }
             },
-            value: U256::from(plain_transaction.get_value()),
+            value: U256::from_big_endian(plain_transaction.get_value()),
             data: Bytes::from(plain_transaction.get_data()),
             block_limit: plain_transaction.get_valid_until_block(),
             chain_id: if version == 0 {
                 plain_transaction.get_chain_id().into()
             } else {
-                plain_transaction.get_chain_id_v1().into()
+                U256::from_big_endian(plain_transaction.get_chain_id_v1())
             },
             version,
         })
@@ -286,11 +286,11 @@ impl Transaction {
         pt.set_valid_until_block(self.block_limit);
         pt.set_data(self.data.clone());
         pt.set_quota(self.gas.as_u64());
-        pt.set_value(<[u8; 32]>::from(self.value).to_vec());
+        pt.set_value(self.value.to_big_endian().to_vec());
         if self.version == 0 {
             pt.set_chain_id(self.chain_id.low_u32());
         } else {
-            pt.set_chain_id_v1(<[u8; 32]>::from(self.chain_id).to_vec());
+            pt.set_chain_id_v1(self.chain_id.to_big_endian().to_vec());
         }
         pt.set_version(self.version);
 
@@ -516,10 +516,10 @@ impl From<CloudUnverifiedTransaction> for SignedTransaction {
                 gas_price: U256::one(),
                 gas: U256::from(raw_tx.quota),
                 action,
-                value: U256::from(raw_tx.value.as_slice()),
+                value: U256::from_big_endian(raw_tx.value.as_slice()),
                 data: raw_tx.data,
                 block_limit: raw_tx.valid_until_block,
-                chain_id: U256::from(raw_tx.chain_id.as_slice()),
+                chain_id: U256::from_big_endian(raw_tx.chain_id.as_slice()),
                 version: raw_tx.version,
             };
             let utx = UnverifiedTransaction {
